@@ -1,0 +1,33 @@
+# data (lives in Docker volumes / HDFS, never in Git)
+data/raw/
+data/tmp/
+*.gz
+*.csv
+!data/validation/*.csv
+!benchmarks/results/*.csv
+!tests/fixtures/**
+
+# secrets
+.env
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# java / build
+*.class
+*.jar
+hive/udf/out/
+hive/udf/hive-lib/
+
+# logs
+*.log
+benchmarks/results/*.log
+
+# editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

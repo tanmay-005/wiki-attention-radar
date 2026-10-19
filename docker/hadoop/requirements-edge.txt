@@ -1,0 +1,7 @@
+pyyaml
+requests
+pandas
+pyarrow
+pymongo
+cassandra-driver
+pytest

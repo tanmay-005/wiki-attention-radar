@@ -1,0 +1,135 @@
+# Wikipedia Attention Radar: local Big Data cluster
+# Run from the docker/ folder:
+#   docker compose --profile hadoop build
+#   docker compose --profile hadoop up -d          # HDFS + YARN + edge
+#   docker compose --profile hive up -d            # HiveServer2 (needs hadoop running)
+#   docker compose --profile nosql up -d           # Cassandra + MongoDB
+#   docker compose --profile hadoop --profile hive --profile nosql down   # stop all (data kept)
+
+name: radar
+
+x-hadoop-conf: &hadoop-conf
+  - ./hadoop/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+  - ./hadoop/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+  - ./hadoop/conf/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
+  - ./hadoop/conf/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
+
+x-hadoop: &hadoop
+  image: radar-hadoop:3.3.6
+  build: { context: ./hadoop }
+  networks: [radar]
+  profiles: [hadoop]
+  restart: unless-stopped
+
+services:
+  namenode:
+    <<: *hadoop
+    hostname: namenode
+    command: ["namenode"]
+    ports: ["127.0.0.1:9870:9870"]
+    volumes:
+      - ./hadoop/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./hadoop/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - nn-data:/data/hdfs/namenode
+
+  datanode:
+    <<: *hadoop
+    hostname: datanode
+    command: ["datanode"]
+    depends_on: [namenode]
+    ports: ["127.0.0.1:9864:9864"]
+    volumes:
+      - ./hadoop/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./hadoop/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - dn-data:/data/hdfs/datanode
+
+  resourcemanager:
+    <<: *hadoop
+    hostname: resourcemanager
+    command: ["resourcemanager"]
+    depends_on: [namenode, datanode]
+    ports: ["127.0.0.1:8088:8088"]
+    volumes: *hadoop-conf
+
+  nodemanager:
+    <<: *hadoop
+    hostname: nodemanager
+    command: ["nodemanager"]
+    depends_on: [resourcemanager]
+    ports: ["127.0.0.1:8042:8042"]
+    volumes: *hadoop-conf
+
+  historyserver:
+    <<: *hadoop
+    hostname: historyserver
+    command: ["historyserver"]
+    depends_on: [resourcemanager]
+    ports: ["127.0.0.1:19888:19888"]
+    volumes: *hadoop-conf
+
+  edge:
+    <<: *hadoop
+    hostname: edge
+    command: ["edge"]
+    depends_on: [namenode, resourcemanager]
+    working_dir: /workspace
+    environment:
+      RADAR_ENV: in_docker
+      PYTHONPATH: /workspace
+    ports: ["127.0.0.1:4040:4040"]
+    volumes:
+      - ./hadoop/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./hadoop/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./hadoop/conf/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
+      - ./hadoop/conf/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
+      - ..:/workspace
+      - raw-cache:/data/raw-cache
+
+  hiveserver2:
+    image: apache/hive:4.0.1
+    hostname: hiveserver2
+    environment:
+      SERVICE_NAME: hiveserver2
+      HIVE_CUSTOM_CONF_DIR: /hive_custom_conf
+    volumes:
+      - ./hive/conf:/hive_custom_conf:ro
+      - ..:/workspace
+    ports: ["127.0.0.1:10000:10000", "127.0.0.1:10002:10002"]
+    networks: [radar]
+    profiles: [hive]
+
+  cassandra:
+    image: cassandra:4.1
+    hostname: cassandra
+    environment:
+      MAX_HEAP_SIZE: 1G
+      HEAP_NEWSIZE: 200M
+      CASSANDRA_CLUSTER_NAME: radar
+    volumes:
+      - cass-data:/var/lib/cassandra
+      - ..:/workspace
+    ports: ["127.0.0.1:9042:9042"]
+    networks: [radar]
+    profiles: [nosql]
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7.0
+    hostname: mongo
+    volumes:
+      - mongo-data:/data/db
+      - ..:/workspace
+    ports: ["127.0.0.1:27017:27017"]
+    networks: [radar]
+    profiles: [nosql]
+    restart: unless-stopped
+
+networks:
+  radar: {}
+
+volumes:
+  nn-data: {}
+  dn-data: {}
+  raw-cache: {}
+  cass-data: {}
+  mongo-data: {}

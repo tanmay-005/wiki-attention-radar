@@ -1,0 +1,416 @@
+# 07 · Feature Development
+
+How each feature is built: inputs, logic, outputs, configuration and the check that proves it works. Feature IDs match the PRD.
+
+---
+
+## F1 · Downloaders (FR-1, FR-2, FR-4)
+
+**`scripts/download_hourly.py`**
+
+```
+for each hour H in [hourly_start, hourly_end] (or dev days):
+    url  = f"https://dumps.wikimedia.org/other/pageviews/{Y}/{Y}-{M}/pageviews-{Y}{M}{D}-{HH}0000.gz"
+    dest = /data/raw-cache/hourly/dt={Y}-{M}-{D}/<filename>
+    if dest exists and size > 0 and gzip test passes: skip
+    stream download to dest.part (requests, stream=True, 1 MB chunks, User-Agent from settings)
+    on failure: retry 5× with exponential back-off (2, 4, 8, 16, 32 s)
+    rename .part -> final; log (file, bytes, seconds)
+```
+
+- Run at most **2 parallel downloads** to be polite to Wikimedia.
+- Integrity: `gzip -t` (or Python `gzip.open(...).read(1)`) after download.
+
+**`scripts/download_country.py`**: same pattern. The file name has no zero padding: `f"{d.year}-{d.month}-{d.day}.csv"`. Destination `/data/raw-cache/country_daily/dt=YYYY-MM-DD/`.
+
+**`scripts/load_hdfs.sh`**: for each local `dt=` folder, `hdfs dfs -mkdir -p` and `hdfs dfs -put -f` only the files missing in HDFS (compare with `hdfs dfs -ls`).
+
+**Check:** re-running the downloader downloads nothing; file counts in HDFS equal the expected counts (24 per day).
+
+---
+
+## F2 · MR1 filter_normalise (FR-5, FR-7)
+
+**Goal:** turn raw lines into clean `(lang, platform, title, hour, views)` rows for the configured languages only.
+
+**Mapper `mapreduce/mr1_mapper.py`**
+
+```
+hour = parse from os.environ["mapreduce_map_input_file"]   # pageviews-20240603-120000.gz -> 2024-06-03T12
+ALLOWED = {lang for lang in settings.languages}
+for line in stdin:
+    parts = line.rstrip("\n").split(" ")
+    if len(parts) != 4: counter("bad_lines"); continue
+    domain, title, views = parts[0], parts[1], parts[2]
+    lang, _, sub = domain.partition(".")
+    if lang not in ALLOWED: continue
+    if sub == "":    platform = "desktop"
+    elif sub == "m": platform = "mobile"
+    else: continue                                # other projects (wiktionary, etc.)
+    if not is_content_page(title): counter("non_content"); continue
+    title = normalize_title(title)                # same rules as Hive UDF
+    print(f"{lang}\t{platform}\t{title}\t{hour}\t{views}")
+```
+
+- **Counters** in streaming: write `reporter:counter:Radar,bad_lines,1` to **stderr**.
+- **Key** = first 4 fields, **value** = views. Set `-D stream.num.map.output.key.fields=4`.
+
+**Combiner and reducer `mr1_reducer.py`:** sum `views` for consecutive equal keys (input is sorted). The same script works as combiner because summing is associative and commutative.
+
+**Partitioner:** partition by `lang` only, so each reducer's output holds one language:
+
+```
+-D mapreduce.partition.keypartitioner.options=-k1,1
+-partitioner org.apache.hadoop.mapred.lib.KeyFieldBasedPartitioner
+```
+
+**Compression**
+
+```
+-D mapreduce.map.output.compress=true
+-D mapreduce.map.output.compress.codec=org.apache.hadoop.io.compress.SnappyCodec
+-D mapreduce.output.fileoutputformat.compress=true
+-D mapreduce.output.fileoutputformat.compress.codec=org.apache.hadoop.io.compress.GzipCodec
+```
+
+**Run script `mapreduce/run_mr1.sh <dt>`**
+
+```bash
+mapred streaming \
+  -D mapreduce.job.name="MR1 filter_normalise $DT" \
+  -D stream.num.map.output.key.fields=4 \
+  -D mapreduce.partition.keypartitioner.options=-k1,1 \
+  -D mapreduce.job.reduces=5 \
+  -D mapreduce.map.output.compress=true \
+  -D mapreduce.map.output.compress.codec=org.apache.hadoop.io.compress.SnappyCodec \
+  -D mapreduce.output.fileoutputformat.compress=true \
+  -D mapreduce.output.fileoutputformat.compress.codec=org.apache.hadoop.io.compress.GzipCodec \
+  -files mr1_mapper.py,mr1_reducer.py,common_title.py,/workspace/config/settings.yaml \
+  -mapper "python3 mr1_mapper.py" -combiner "python3 mr1_reducer.py" -reducer "python3 mr1_reducer.py" \
+  -partitioner org.apache.hadoop.mapred.lib.KeyFieldBasedPartitioner \
+  -input /radar/raw/hourly/dt=$DT -output /radar/staged/hourly/dt=$DT
+```
+
+(`mapreduce.job.reduces` = number of languages.)
+
+**Check:** sum of views per language in the output equals the same sum computed by a Hive query on `raw_hourly` with identical filters (conservation test, `09_TESTING_QA.md` T-D2).
+
+---
+
+## F3 · MR2 daily_agg, MR3 top_n, MR4 search (FR-6, FR-7)
+
+**MR2:** the mapper drops `platform` and the hour→day part and emits `lang \t title \t day \t views`. The combiner/reducer sums. Output `/radar/staged/daily/dt=...`.
+
+**MR3 top_n (sorting):**
+- Mapper emits `lang \t day \t views \t title`.
+- Sort by `lang`, `day` ascending, then `views` numeric descending:
+  ```
+  -D mapreduce.job.output.key.comparator.class=org.apache.hadoop.mapred.lib.KeyFieldBasedComparator
+  -D stream.num.map.output.key.fields=3
+  -D mapreduce.partition.keycomparator.options="-k1,1 -k2,2 -k3,3nr"
+  -D mapreduce.partition.keypartitioner.options=-k1,2
+  ```
+- The reducer keeps the first 100 rows per (lang, day).
+
+**MR4 search:** the mapper reads MR1 output and emits only rows whose title equals `os.environ["SEARCH_TITLE"]` (passed with `-cmdenv SEARCH_TITLE=...`). Map-only job (`-numReduceTasks 0`). Demonstrates searching without an index.
+
+**Check:** MR3 top-1 for `en` on the dev day matches `SELECT ... ORDER BY views DESC LIMIT 1` in Hive.
+
+---
+
+## F4 · Hive layer (FR-8, FR-9)
+
+1. External tables over raw and staged data (`03_DATA_MODEL.md` §3); `MSCK REPAIR TABLE` after each load.
+2. **UDF build** (`hive/udf/build.sh`, run in `edge`):
+   ```bash
+   docker cp radar-hiveserver2-1:/opt/hive/lib ./hive-lib      # once, from the host
+   javac -cp "hive-lib/*:$(hadoop classpath)" -d out NormalizeTitle.java IsContentPage.java
+   jar cf radar-udf.jar -C out .
+   hdfs dfs -put -f radar-udf.jar /radar/lib/radar-udf.jar
+   ```
+   ```sql
+   CREATE FUNCTION radar.normalize_title AS 'radar.udf.NormalizeTitle'
+     USING JAR 'hdfs://namenode:8020/radar/lib/radar-udf.jar';
+   CREATE FUNCTION radar.is_content_page AS 'radar.udf.IsContentPage'
+     USING JAR 'hdfs://namenode:8020/radar/lib/radar-udf.jar';
+   ```
+   The UDFs extend `org.apache.hadoop.hive.ql.udf.generic.GenericUDF`. Implement `initialize`, `evaluate` and `getDisplayString`.
+3. **Warehouse load:**
+   ```sql
+   SET hive.exec.dynamic.partition.mode=nonstrict;
+   INSERT OVERWRITE TABLE radar.hourly_views PARTITION (dt)
+   SELECT lang, page_title,
+          CAST(from_unixtime(unix_timestamp(hour_ts, "yyyy-MM-dd'T'HH")) AS TIMESTAMP),
+          SUM(IF(platform='desktop', views, 0)), SUM(IF(platform='mobile', views, 0)), SUM(views), dt
+   FROM radar.staged_hourly GROUP BY lang, page_title, hour_ts, dt;
+   ```
+4. **Python TRANSFORM alternative** (shown once in `03_analysis.hql` to contrast with Java UDFs):
+   `SELECT TRANSFORM(page_title) USING 'python3 normalize.py' AS (title) FROM ...`
+
+**Check:** `SELECT radar.normalize_title('Virat_Kohli%27s_career')` returns `Virat Kohli's career`.
+
+---
+
+## F5 · S1 build series with candidate pruning (FR-10)
+
+**Problem:** there are millions of (lang, title) series, but only a tiny fraction ever spikes. Computing baselines for all of them wastes hours.
+
+**Logic**
+
+```python
+hv = spark.read.orc("/radar/warehouse/radar.db/hourly_views")        # lang, page_title, hour_ts, views
+det = hv.filter(col("hour_ts") >= detect_start)
+candidates = (det.filter(col("views") >= cfg.global_hourly.min_views)
+                 .select("lang", "page_title").distinct())           # tens of thousands
+series = hv.join(broadcast(candidates), ["lang", "page_title"])     # all hours for candidates
+hours  = spark.range(...)  # every hour in [hourly_start, hourly_end] as hour_ts
+dense  = (candidates.crossJoin(hours)
+            .join(series, ["lang", "page_title", "hour_ts"], "left")
+            .fillna({"views": 0}))                                    # dumps omit zero-view hours
+dense.write.partitionBy("lang").parquet("/radar/output/series_global")
+```
+
+**Check:** row count of `dense` = candidates × number of hours; no nulls in `views`.
+
+---
+
+## F6 · S2 global/language spike detection (FR-10, FR-12, FR-15, FR-16)
+
+### Baseline (robust)
+
+For each (lang, title) and each detection **day D**, the baseline uses the hourly values in the previous `baseline_hours` (168 = 7 days) **before D**:
+
+- `median` = 50th percentile
+- `sigma` = (p75 − p25) / 1.349 (IQR-based robust standard deviation, not distorted by earlier spikes)
+
+Implementation without expensive sliding windows: **explode** each hour row into the detection days it serves, then aggregate once:
+
+```python
+# an hour h serves days D where D-7d <= h < D
+served = dense.withColumn("serve_day", explode(sequence(date(h)+1, date(h)+7)))
+              .filter(col("serve_day").between(detect_start, detect_end))
+base = served.groupBy("lang","page_title","serve_day").agg(
+          percentile_approx("views", [0.25, 0.5, 0.75], 1000).alias("q"))
+```
+
+### Spike rule (per hour)
+
+```
+b      = max(median, baseline_floor)                 # floor avoids divide-by-tiny
+ratio  = views / b
+z      = (views - median) / (sigma + 1)
+spike  = views >= min_views AND ratio >= min_ratio AND z >= min_z
+```
+
+Defaults: `min_views 1000/hour, min_ratio 4, min_z 5, floor 50` (in `settings.yaml`).
+
+### Spike episodes
+
+Consecutive spike hours for the same (lang, title) merge into one **episode** (gaps of ≤ 1 hour allowed):
+
+```python
+w = Window.partitionBy("lang","page_title").orderBy("hour_ts")
+flag new episode when (hour_ts - lag(hour_ts)) > 2 hours  -> running sum = episode_id
+episode = groupBy(lang, page_title, episode_id).agg(
+    min(hour_ts).alias("start"), max(hour_ts).alias("end"),
+    max_by(hour_ts, views).alias("peak_hour"), max(views).alias("peak_views"),
+    max(ratio).alias("ratio"), first(median).alias("baseline"),
+    sum(views_desktop)/sum(views) as desktop_share)
+```
+
+### Suspicious flag (likely automated)
+
+`suspicious = (end == start) AND (desktop_share > 0.95) AND ratio > 50`: a one-hour, desktop-only, enormous jump is a typical bot pattern. Suspicious episodes are kept but marked, never silently removed.
+
+**Output:** `/radar/output/spikes_global` with columns `lang, page_title, start, end, peak_hour, peak_views, baseline, ratio, desktop_share, suspicious`.
+
+**Check:** unit tests on synthetic series (`09_TESTING_QA.md` T-U3), plus the top 20 on the dev slice look like real events.
+
+---
+
+## F7 · S3 country spike detection (FR-11)
+
+Same idea on `radar.country_daily` (`country, qid, day, views`), grouped by `(country, qid)` (summing languages of the same entity within a country).
+
+| Setting | Value | Why |
+|---|---|---|
+| Baseline window | 14 previous days | Daily data needs a longer window |
+| Missing days | Treated as 0 | The row was suppressed, i.e. below the release threshold |
+| Baseline floor | 90 | Equal to the lowest release threshold, so a missing day never becomes an infinite jump |
+| Rule | `views >= 500 AND ratio >= 3 AND z >= 4` | |
+
+Countries with no published data simply have no rows; the dashboard shows the corresponding empty state.
+
+**Output:** `/radar/output/spikes_country` (`country, qid, day, views, baseline, ratio`).
+
+---
+
+## F8 · S4 Wikidata enrichment (FR-13)
+
+**Input:** distinct `(lang, page_title)` from global spikes (+ `qid` already present for country spikes). This is a small set (thousands), so it is collected to the driver.
+
+**Step 1: title → QID** (only for global spikes)
+`GET https://www.wikidata.org/w/api.php?action=wbgetentities&sites={lang}wiki&titles=T1|T2|...&props=info|claims|labels&languages=en&format=json`. Up to **50 titles per call**. Redirects: also try `&redirects=yes`.
+
+**Step 2: claims used**
+
+| Property | Meaning | Use |
+|---|---|---|
+| P31 | instance of | Category rules |
+| P279 | subclass of | Category fallback (one level) |
+| P106 | occupation (for humans, P31 = Q5) | Category for people |
+| P17 | country | Event country |
+| P131 | located in the administrative territorial entity | Walk up to the first-level region (state) |
+| P276 | location | Events whose location is a venue/city |
+| P300 | ISO 3166-2 code | Region code (e.g. IN-RJ) |
+| P625 | coordinate location | Optional (map view later) |
+
+**Step 3: region resolution.** From the item (or its P276 location), follow P131 upwards (max 5 hops) until an item with a **P300 ISO 3166-2 code** is found. That gives the state/region. The city is the first hop when it is an instance of city/town. Results are cached per QID. A single SPARQL query can resolve many items at once:
+
+```sparql
+SELECT ?item ?region ?code WHERE {
+  VALUES ?item { wd:Q1 wd:Q2 }
+  ?item wdt:P131* ?region .
+  ?region wdt:P300 ?code .
+}
+```
+
+**Step 4: category rules** (`enrichment/category_rules.yaml`). Ordered rules; the first match wins:
+
+```yaml
+- category: Politics
+  p31_any: [Q40231, Q7278, Q4164871, Q1752346]     # election, political party, position, ...
+  p106_any: [Q82955]                                # politician
+- category: Sports
+  p31_any: [Q13406554, Q27020041, Q847017, Q16510064]
+  p106_any: [Q2066131, Q12299841, Q937857]          # athlete, cricketer, footballer
+- category: Entertainment
+  p31_any: [Q11424, Q5398426, Q482994, Q7366]       # film, TV series, album, song
+  p106_any: [Q33999, Q177220, Q2526255]             # actor, singer, film director
+- category: Science & Tech
+  p31_any: [Q7397, Q19723451, Q40218, Q2133344]     # software, smartphone model, spacecraft, space mission
+- category: Business
+  p31_any: [Q4830453, Q223371, Q8142, Q66344]       # business, stock index, currency, central bank
+- category: Disasters
+  p31_any: [Q8065, Q7944, Q8068, Q8092, Q168983, Q2223653]  # natural disaster, earthquake, flood, cyclone, conflagration, terrorist attack
+default: Other
+```
+
+> The QIDs above are a **starting list**. Verify each one on wikidata.org before relying on it, and extend the list by inspecting the "Other" bucket after the first run.
+
+**Caching:** every lookup is stored in Mongo `pages` (`_id = "<lang>:<title>"`). Re-runs only query unknown titles.
+
+**Etiquette:** User-Agent from settings, ≤ 1 request/second, retry on HTTP 429/5xx honouring `Retry-After`.
+
+**Output:** `/radar/output/page_meta` (`lang, page_title, qid, category, country, region_code, region_name, city_qid, links[]`).
+
+**Check:** a hand-picked list of 20 known titles gets the expected category and country (T-U5).
+
+---
+
+## F9 · S5 event grouping and scoring (FR-14, FR-15)
+
+**Step 1: nodes.** Each spike episode (global) and each country spike is a node, keyed by its QID.
+
+**Step 2: edges.** Connect two nodes when:
+1. They have the **same QID** (e.g. the English and Hindi articles of one topic, or the global and country spikes of one entity), with peaks within 24 hours; or
+2. One item **links to** the other in its Wikidata claims (`links[]`), and their peak hours are within `group_window_hours` (6).
+
+Very generic link targets (countries, Q5 "human", languages, years) are excluded from linking, otherwise everything would merge.
+
+**Step 3: connected components** with union-find on the driver. The number of spike nodes is small (thousands), so this is fast and simple; no graph library is needed.
+
+**Step 4: event fields**
+
+| Field | Rule |
+|---|---|
+| `event_id` | `evt_<YYYYMMDD of first_detected>_<lead QID>` |
+| lead article | Member with the highest peak views |
+| title | Lead article's label |
+| category | Most common member category (ties → lead's) |
+| location | Lead article's location; if none, the most common member location |
+| first_detected / peak_time | min(start) / time of the max peak |
+| ratio | Max member ratio (capped at `ratio_cap` = 100) |
+| **score** | `min(ratio, 100) × log10(peak_views − baseline + 10)` |
+| langs | Distinct languages of member spikes |
+| countries | Country spikes attached (code, ratio, peak) |
+| scopes | `G` if it has global spikes; `R:<CC>` for each attached country spike; `A:<CC>` and `A:<CC>:<REGION>` from its location |
+| suspicious | All member episodes suspicious |
+
+**Why this score:** ranking by jump alone puts tiny pages first (10 → 200 views is ×20). Multiplying by the log of the extra views rewards jumps that also involve real volume.
+
+**Country-only events:** a country spike with no matching global spike becomes its own event with scope `R:<CC>` only.
+
+**Output:** `/radar/output/events` (one row per event, arrays for members).
+
+**Check:** the dev day's top events are coherent (no giant "everything" event, no duplicates of one topic in the top 10).
+
+---
+
+## F10 · S6 serving loaders (FR-17, FR-18, FR-19)
+
+| Target | Method | Notes |
+|---|---|---|
+| `article_hourly` | Spark Cassandra connector `df.write.format("org.apache.spark.sql.cassandra")` | Only for lead + member articles of events (±7 days around the peak) |
+| `article_country_daily` | Spark Cassandra connector | Only for (qid, country) pairs in events |
+| `event_rank` | Python driver, prepared `INSERT`, two rows per event per scope (`ALL` + its category), `day` = first_detected day; one row per day the event is active, for 7d/30d windows | |
+| `trending_now` | Python driver, `INSERT ... USING TTL` | Last detection day's top 20 per scope |
+| `spike_counts` | Python driver, `UPDATE ... SET spikes = spikes + 1` | Counters cannot be set with INSERT |
+| `region_index` | Python driver | From events with `A:<CC>:<REGION>` scopes |
+| Mongo `events` | `pymongo` `bulk_write` of `ReplaceOne(upsert=True)` | Idempotent re-runs |
+
+Spark submit with the connector:
+
+```bash
+spark-submit --master local[*] \
+  --packages com.datastax.spark:spark-cassandra-connector_2.12:3.5.1 \
+  --conf spark.cassandra.connection.host=cassandra \
+  /workspace/spark/jobs/s6_load_serving.py
+```
+
+**Idempotency:** before loading a run, `TRUNCATE` `event_rank`, `trending_now`, `region_index`; counters are reset by `TRUNCATE spike_counts`.
+
+**Check:** `SELECT * FROM radar.event_rank WHERE scope='G' AND day='2024-06-04' AND category='ALL' LIMIT 5;` returns the same top 5 as the Spark output.
+
+---
+
+## F11 · Dashboard (FR-20 to FR-31)
+
+Built exactly as specified in `04_UI_UX_DESIGN.md`. Key implementation notes:
+
+- `st.session_state` holds the filter state; one `on_change` callback per control enforces the rules (country change resets state/mode; picking a state sets mode = about).
+- Time window → `days = [as_of - i for i in range(n)]`, clipped to available days (`SELECT DISTINCT` is not possible on partition keys, so available days come from `settings.yaml` or a small `meta` document in Mongo).
+- `get_top_events` merges multiple day partitions by `event_id` (max score) before sorting.
+- The detail panel fetches the Mongo document plus the Cassandra series in two cached calls.
+- Plotly bar chart for the series, a dashed `hline`/line for the baseline, and the sparkline from the stored list.
+
+**Check:** all five scenarios in `04_UI_UX_DESIGN.md` §4 and every empty state behave as specified.
+
+---
+
+## F12 · Validation (FR-30)
+
+- `data/validation/known_events_2024-06.csv`: `id, name, date, scope, expected_titles_or_qids, notes`. Build it from reliable sources and double-check every date.
+- Candidate events to verify for the June 2024 window: Indian general election counting day (4 Jun), the India vs Pakistan T20 World Cup match (9 Jun), the Indian PM swearing-in (9 Jun), European Parliament elections (6–9 Jun), Apple WWDC keynote (10 Jun), the Kuwait building fire (12 Jun), the Euro 2024 opening (14 Jun).
+- `spark/jobs/s7_validate.py`: an event matches a known event if it contains any expected QID (or title) and its first detection is within 48 h of the date. Outputs recall, rank and detection delay to Mongo `validation` and a CSV.
+- Precision@50: label the top 50 global events in `data/validation/labels_top50.csv` (`event_id, is_real, note`).
+
+---
+
+## F13 · Benchmarks (FR-7, PRD §9)
+
+| ID | Compare | Measure | Script |
+|---|---|---|---|
+| B1 | MR1 with vs without combiner | `Map output materialized bytes`, `Reduce shuffle bytes`, runtime | `benchmarks/b1_combiner.sh` |
+| B2 | Map output compression off / Snappy / Gzip | Shuffle bytes, runtime, CPU ms | `benchmarks/b2_compression.sh` |
+| B3 | Text vs ORC vs Parquet | HDFS size (`du -s`), runtime of 3 HQL queries | `benchmarks/b3_formats.hql` |
+| B4 | Daily aggregation: MR2 vs Spark DataFrame | Wall-clock runtime on the same input | `benchmarks/b4_mr_vs_spark.sh` |
+| B5 | RDD `reduceByKey` vs DataFrame `groupBy` | Runtime, shuffle size (Spark UI) | `benchmarks/b5_rdd_vs_df.py` |
+
+Run each 3 times and record the median in `benchmarks/results/<id>.csv` (`variant, run, metric, value`).
+
+---
+
+## F14 · Pipeline runner
+
+`scripts/run_pipeline.sh [--dev|--full]` is a **host-side** wrapper. It runs, in order: load → MR1 → MR2 (via `docker compose exec edge`) → Hive repair + warehouse load (via `docker compose exec hiveserver2 beeline`) → S1 → S2 → S3 → S4 → S5 → S6 (via `docker compose exec edge spark-submit`). It stops at the first failure and prints the time per stage, which goes into the report. The in-container parts live in `scripts/run_ingest_mr.sh` and `scripts/run_spark.sh` (see `08_INTEGRATION.md` §5).

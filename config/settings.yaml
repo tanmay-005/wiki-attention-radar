@@ -1,0 +1,74 @@
+# Wikipedia Attention Radar: single source of configuration.
+# Every script, MapReduce job, Spark job and the dashboard read this file.
+
+period:
+  hourly_start: 2024-05-25     # 7 days of baseline before detection
+  hourly_end:   2024-06-14
+  detect_start: 2024-06-01
+  country_start: 2024-05-15    # 14 days of baseline before detection
+  country_end:   2024-06-14
+
+dev:                            # small slice for fast iteration
+  hourly_days:  [2024-06-03, 2024-06-04]
+  country_days: [2024-06-02, 2024-06-03, 2024-06-04]
+
+languages: [en, hi, ta, ja, pt]
+
+spikes:
+  global_hourly:
+    baseline_hours: 168
+    min_views: 1000
+    min_ratio: 4.0
+    min_z: 5.0
+    baseline_floor: 50
+  country_daily:
+    baseline_days: 14
+    min_views: 500
+    min_ratio: 3.0
+    min_z: 4.0
+    baseline_floor: 90
+  ratio_cap: 100
+  suspicious:
+    max_desktop_share: 0.95
+    min_ratio: 50
+
+events:
+  group_window_hours: 6
+  same_entity_window_hours: 24
+  max_members: 50
+
+paths:
+  hdfs_root: /radar
+  raw_hourly: /radar/raw/hourly
+  raw_country: /radar/raw/country_daily
+  staged: /radar/staged
+  warehouse: /radar/warehouse
+  output: /radar/output
+  local_raw_cache: /data/raw-cache      # inside the edge container (Docker volume on D:)
+
+wikimedia:
+  hourly_url: "https://dumps.wikimedia.org/other/pageviews/{y}/{y}-{m:02d}/pageviews-{y}{m:02d}{d:02d}-{h:02d}0000.gz"
+  country_url: "https://analytics.wikimedia.org/published/datasets/country_project_page/{y}-{m}-{d}.csv"
+  # Wikimedia requires a descriptive User-Agent with contact details. Replace the email.
+  user_agent: "WikiAttentionRadar/0.1 (student project; contact: YOUR_EMAIL_HERE)"
+  max_parallel_downloads: 2
+  wikidata_api: "https://www.wikidata.org/w/api.php"
+  wikidata_sparql: "https://query.wikidata.org/sparql"
+  wikidata_batch: 50
+  wikidata_min_interval_s: 1.0
+
+connections:
+  in_docker:                     # scripts and jobs running inside containers
+    cassandra_host: cassandra
+    cassandra_port: 9042
+    mongo_uri: "mongodb://mongo:27017"
+    hdfs: "hdfs://namenode:8020"
+    hive_jdbc: "jdbc:hive2://hiveserver2:10000"
+  on_host:                       # the dashboard running on your Windows machine
+    cassandra_host: 127.0.0.1
+    cassandra_port: 9042
+    mongo_uri: "mongodb://127.0.0.1:27017"
+
+databases:
+  cassandra_keyspace: radar
+  mongo_db: radar
