@@ -10,16 +10,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/bin/python3 /usr/bin/python
 
-# Hadoop
-RUN curl -fsSL https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz \
-      | tar -xz -C /opt \
-    && ln -s /opt/hadoop-${HADOOP_VERSION} /opt/hadoop \
-    && rm -rf /opt/hadoop/share/doc
+# Hadoop: copied from the official Apache image on Docker Hub (fast CDN)
+COPY --from=apache/hadoop:3.3.6 /opt/hadoop /opt/hadoop
+RUN rm -rf /opt/hadoop/share/doc
 
-# Spark (pre-built for Hadoop 3)
-RUN curl -fsSL https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz \
-      | tar -xz -C /opt \
-    && ln -s /opt/spark-${SPARK_VERSION}-bin-hadoop3 /opt/spark
+# Spark: the pyspark pip package ships the full Spark runtime (fast PyPI CDN)
+RUN pip3 install --no-cache-dir pyspark==${SPARK_VERSION} \
+    && ln -s "$(python3 -c 'import os, pyspark; print(os.path.dirname(pyspark.__file__))')" /opt/spark \
+    && chmod +x /opt/spark/bin/*
 
 # Python libraries used by scripts, MapReduce tasks and Spark jobs
 COPY requirements-edge.txt /tmp/requirements-edge.txt

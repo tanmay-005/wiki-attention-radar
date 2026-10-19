@@ -16,7 +16,6 @@ x-hadoop-conf: &hadoop-conf
 
 x-hadoop: &hadoop
   image: radar-hadoop:3.3.6
-  build: { context: ./hadoop }
   networks: [radar]
   profiles: [hadoop]
   restart: unless-stopped
@@ -69,6 +68,7 @@ services:
 
   edge:
     <<: *hadoop
+    build: { context: ./hadoop }
     hostname: edge
     command: ["edge"]
     depends_on: [namenode, resourcemanager]
