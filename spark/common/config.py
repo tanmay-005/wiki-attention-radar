@@ -74,7 +74,8 @@ def _validate(cfg: dict) -> None:
     if (de - hs).days < need:
         raise ValueError(f"detect_start must be >= {need} days after hourly_start (baseline window)")
     if "YOUR_EMAIL_HERE" in cfg["wikimedia"]["user_agent"]:
-        print("WARNING: set wikimedia.user_agent in config/settings.yaml to include your email")
+        import sys
+        print("WARNING: set wikimedia.user_agent in config/settings.yaml to include your email", file=sys.stderr)
 
 
 if __name__ == "__main__":

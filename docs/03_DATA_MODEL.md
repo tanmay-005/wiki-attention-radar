@@ -22,28 +22,30 @@ domain_code page_title count_views total_response_size
 | `count_views` | Views in that hour | Integer |
 | `total_response_size` | Legacy field | Ignored (typically 0) |
 
-Scale reference: roughly 6 million lines per hourly file, i.e. about 140 million lines per day. Check the exact file sizes on the listing page before downloading.
-
-> Verify on the first downloaded file: `zcat pageviews-20240603-120000.gz | head`
+**Confirmed on real data (step 1.4, file `pageviews-20240603-000000.gz`):**
+- Every line has exactly 4 space-separated fields; `total_response_size` is always `0`.
+- Lines are **sorted by domain code** (the file starts with `""`, `ab`, `ar`, ...; `en` comes much later).
+- Besides `xx` (desktop) and `xx.m` (mobile), other domain codes exist (`commons.m`, `commons.m.m`, `ar.b`, ...). Only `<lang>` and `<lang>.m` for the configured languages are kept.
+- **Namespaces are localised** on non-English wikis (Arabic `تصنيف` = Category, Russian `Файл` = File). The content-page filter therefore uses English canonical names **plus** localised names for hi, ta, ja and pt (list in `mapreduce/common_title.py`).
+- The 2-day dev slice is 48 files, **2.6 GB** compressed in HDFS.
 
 ### 1.2 Per-country daily pageviews (differential privacy)
 
 - Home: `https://analytics.wikimedia.org/published/datasets/country_project_page/`
-- One file per day, named `YYYY-M-D.csv` (no zero padding, e.g. `2024-6-3.csv`). Available from 2023-02-06.
-- Columns (documented order): `country, project, page_id, page_title, item_id, gbc`
+- One file per day, **zero-padded, tab-separated**: `YYYY-MM-DD.tsv` (e.g. `2024-06-03.tsv`), about **24 MB / 410,000 rows** per day, available from 2023-02-06.
+- **No header row. 7 columns** (confirmed in step 1.4; the dataset README lists 6 and calls the files `.csv`, but the published files differ):
 
-| Field | Meaning |
-|---|---|
-| `country` | Reader country (countries with "not published" risk classification are excluded) |
-| `project` | e.g. `en.wikipedia` |
-| `page_id` | Numeric page ID (unique together with project) |
-| `page_title` | Title (may be a redirect name, not always canonical) |
-| `item_id` | **Wikidata QID**, which makes enrichment much easier |
-| `gbc` | Noisy daily pageview count (differential privacy noise added) |
+| # | Column | Example | Meaning |
+|---|---|---|---|
+| 1 | `country_name` | `India` | Reader country, full name |
+| 2 | `country_code` | `IN` | ISO 3166-1 alpha-2, used for scopes like `R:IN` |
+| 3 | `project` | `en.wikipedia` | Wiki project (all languages and projects are included, so we filter) |
+| 4 | `page_id` | `121279` | Numeric page ID (unique together with project) |
+| 5 | `page_title` | `Comechingones` | Title (may be a redirect name) |
+| 6 | `item_id` | `Q1113975` | **Wikidata QID**, which makes enrichment much easier |
+| 7 | `views` | `141` | Noisy daily pageview count (differential privacy) |
 
-- Rows are published only above a threshold (> 90 views for lower-risk countries; higher for medium/high-risk countries).
-
-> Verify on the first file: delimiter, header row, and whether `country` is a name or an ISO code. Adjust the Hive DDL in section 3.2 accordingly.
+- Rows are published only above a threshold (> 90 views for lower-risk countries; higher for medium/high-risk countries), which matches the smallest values seen in the file.
 
 ---
 
@@ -53,7 +55,7 @@ Scale reference: roughly 6 million lines per hourly file, i.e. about 140 million
 /radar
 ├── raw
 │   ├── hourly/dt=2024-06-03/pageviews-20240603-000000.gz ... -230000.gz
-│   └── country_daily/dt=2024-06-03/2024-6-3.csv
+│   └── country_daily/dt=2024-06-03/2024-06-03.tsv
 ├── staged
 │   ├── hourly/dt=2024-06-03/part-r-00000.gz ...     # MR1 output
 │   ├── daily/dt=2024-06-03/part-r-00000.gz ...      # MR2 output
@@ -100,14 +102,14 @@ LOCATION '/radar/raw/hourly';
 
 ```sql
 CREATE EXTERNAL TABLE radar.raw_country_daily (
-  country STRING, project STRING, page_id BIGINT,
+  country_name STRING, country_code STRING, project STRING, page_id BIGINT,
   page_title STRING, item_id STRING, views BIGINT
 )
 PARTITIONED BY (dt STRING)
-ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'   -- or DELIMITED FIELDS TERMINATED BY '\t'
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 STORED AS TEXTFILE
-LOCATION '/radar/raw/country_daily'
-TBLPROPERTIES ("skip.header.line.count"="1");                    -- only if a header exists
+LOCATION '/radar/raw/country_daily';
+-- no header row, so no skip.header.line.count
 ```
 
 ### 3.3 Staged (external over MapReduce output)
@@ -144,7 +146,10 @@ CREATE TABLE radar.daily_views (
 PARTITIONED BY (dt STRING) STORED AS ORC;
 
 CREATE TABLE radar.country_daily (
-  country STRING, lang STRING, page_id BIGINT, page_title STRING,
+  country STRING,            -- ISO code (IN, US, ...)
+  country_name STRING,
+  lang STRING,               -- from project: en.wikipedia -> en (configured languages only)
+  page_id BIGINT, page_title STRING,
   qid STRING, views BIGINT
 )
 PARTITIONED BY (dt STRING) STORED AS ORC;

@@ -21,8 +21,8 @@ How the parts connect: external sources, connections between containers, and the
 | Item | Value |
 |---|---|
 | Home | `https://analytics.wikimedia.org/published/datasets/country_project_page/` (README: `00_README.html`) |
-| File | `YYYY-M-D.csv` (no zero padding) |
-| Columns | `country, project, page_id, page_title, item_id, gbc` |
+| File | `YYYY-MM-DD.tsv` (zero-padded, tab-separated, no header, about 24 MB) |
+| Columns | `country_name, country_code, project, page_id, page_title, item_id, views` |
 | Notes | Differentially private (noisy) counts; rows below the release threshold are absent; some countries are never published |
 
 ### 1.3 Wikidata

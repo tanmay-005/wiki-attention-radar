@@ -48,7 +48,7 @@ paths:
 
 wikimedia:
   hourly_url: "https://dumps.wikimedia.org/other/pageviews/{y}/{y}-{m:02d}/pageviews-{y}{m:02d}{d:02d}-{h:02d}0000.gz"
-  country_url: "https://analytics.wikimedia.org/published/datasets/country_project_page/{y}-{m}-{d}.csv"
+  country_url: "https://analytics.wikimedia.org/published/datasets/country_project_page/{y}-{m:02d}-{d:02d}.tsv"
   # Wikimedia requires a descriptive User-Agent with contact details. Replace the email.
   user_agent: "WikiAttentionRadar/0.1 (student project; contact: YOUR_EMAIL_HERE)"
   max_parallel_downloads: 2

@@ -21,7 +21,7 @@ for each hour H in [hourly_start, hourly_end] (or dev days):
 - Run at most **2 parallel downloads** to be polite to Wikimedia.
 - Integrity: `gzip -t` (or Python `gzip.open(...).read(1)`) after download.
 
-**`scripts/download_country.py`**: same pattern. The file name has no zero padding: `f"{d.year}-{d.month}-{d.day}.csv"`. Destination `/data/raw-cache/country_daily/dt=YYYY-MM-DD/`.
+**`scripts/download_country.py`**: same pattern. The published files are zero-padded TSV: `f"{d:%Y-%m-%d}.tsv"` (confirmed in step 1.4; the dataset README says `.csv` without padding). Destination `/data/raw-cache/country_daily/dt=YYYY-MM-DD/`.
 
 **`scripts/load_hdfs.sh`**: for each local `dt=` folder, `hdfs dfs -mkdir -p` and `hdfs dfs -put -f` only the files missing in HDFS (compare with `hdfs dfs -ls`).
 

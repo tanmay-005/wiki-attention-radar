@@ -41,7 +41,7 @@ Buffer: P4 is the hardest phase and has the most days. If behind, cut "Should/Co
 
 **Do**
 1. `scripts/download_hourly.py`: builds the URL list from `settings.yaml`; `--dev` / `--full`; streams to `/data/raw-cache`; skips complete files; retries with back-off; logs size and duration.
-2. `scripts/download_country.py`: same for the daily per-country files (non-padded file names).
+2. `scripts/download_country.py`: same for the daily per-country files (`YYYY-MM-DD.tsv` files).
 3. `scripts/load_hdfs.sh`: `hdfs dfs -put` into `dt=` folders; skips existing files.
 4. Inspect real files and **update `03_DATA_MODEL.md`** with the confirmed delimiter, header and country format.
 5. HDFS demos for the report: `hdfs fsck /radar/raw -files -blocks | head`, `-du -h`, `-count`, `-setrep`.

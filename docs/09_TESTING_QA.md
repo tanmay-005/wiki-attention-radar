@@ -25,7 +25,7 @@ Tests live in `tests/` and run with `pytest` inside `edge` (`docker compose exec
 | T-U7 | `union_find` / `group_events` | Same QID merges; linked QIDs within 6 h merge; linked but 2 days apart → separate; generic link (Q5, country) does not merge |
 | T-U8 | `event_score` | Monotonic in ratio and in volume; ratio capped at 100 |
 | T-U9 | `scope_keys(event)` | Event in Rajasthan with India readers → `G`, `R:IN`, `A:IN`, `A:IN:IN-RJ` |
-| T-U10 | `country_file_name(date)` | 2024-06-03 → `2024-6-3.csv` |
+| T-U10 | `country_file_name(date)` | 2024-06-03 → `2024-06-03.tsv` |
 | T-U11 | Filter rules (dashboard state) | Country change resets state and mode; state pick sets mode = about; Readers in resets state |
 
 Saved Wikidata responses live in `tests/fixtures/wikidata/*.json`, so unit tests never call the network.
