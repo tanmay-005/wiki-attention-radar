@@ -1,0 +1,105 @@
+### HDFS demo for /radar/raw/hourly/dt=2024-06-03   (2026-10-23 19:05 UTC)
+
+$ hdfs dfsadmin -report  (summary)
+Configured Capacity: 1081101176832 (1006.85 GB)
+Present Capacity: 1008817328128 (939.53 GB)
+DFS Remaining: 1006024970240 (936.93 GB)
+DFS Used: 2792357888 (2.60 GB)
+DFS Used%: 0.28%
+Replicated Blocks:
+	Under replicated blocks: 0
+	Blocks with corrupt replicas: 0
+	Missing blocks: 0
+	Missing blocks (with replication factor 1): 0
+	Low redundancy blocks with highest priority to recover: 0
+	Pending deletion blocks: 0
+Erasure Coded Block Groups: 
+	Low redundancy block groups: 0
+	Block groups with corrupt internal blocks: 0
+	Missing block groups: 0
+	Low redundancy blocks with highest priority to recover: 0
+	Pending deletion blocks: 0
+
+-------------------------------------------------
+
+$ hdfs dfs -count -h /radar/raw/hourly/dt=2024-06-03        # DIR_COUNT FILE_COUNT CONTENT_SIZE PATH
+           1           24              1.3 G /radar/raw/hourly/dt=2024-06-03
+
+$ hdfs dfs -du -s -h /radar/raw/*
+74.4 M  74.4 M  /radar/raw/country_daily
+2.5 G   2.5 G   /radar/raw/hourly
+
+$ hdfs dfs -ls -h /radar/raw/hourly/dt=2024-06-03 | head
+Found 24 items
+-rw-r--r--   1 root supergroup     43.3 M 2026-10-22 19:31 /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-000000.gz
+-rw-r--r--   1 root supergroup     41.1 M 2026-10-22 19:31 /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-010000.gz
+-rw-r--r--   1 root supergroup     40.7 M 2026-10-22 19:31 /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-020000.gz
+-rw-r--r--   1 root supergroup     40.7 M 2026-10-22 19:31 /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-030000.gz
+-rw-r--r--   1 root supergroup     41.1 M 2026-10-22 19:31 /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-040000.gz
+-rw-r--r--   1 root supergroup     43.0 M 2026-10-22 19:31 /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-050000.gz
+-rw-r--r--   1 root supergroup     46.3 M 2026-10-22 19:31 /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-060000.gz
+
+$ hdfs dfs -stat 'name=%n size=%b blocksize=%o replication=%r' /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-000000.gz
+name=pageviews-20240603-000000.gz size=45359446 blocksize=134217728 replication=1
+
+$ hdfs fsck /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-000000.gz -files -blocks -locations
+FSCK started by root (auth:SIMPLE) from /172.18.0.6 for path /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-000000.gz at Fri Oct 23 19:05:53 UTC 2026
+
+/radar/raw/hourly/dt=2024-06-03/pageviews-20240603-000000.gz 45359446 bytes, replicated: replication=1, 1 block(s):  OK
+0. BP-902159730-172.18.0.2-1792697389048:blk_1073741825_1001 len=45359446 Live_repl=1  [DatanodeInfoWithStorage[172.18.0.3:9866,DS-8b02df84-1bc4-4271-bbab-ee8414e9c441,DISK]]
+
+
+Status: HEALTHY
+ Number of data-nodes:	1
+ Number of racks:		1
+ Total dirs:			0
+ Total symlinks:		0
+
+Replicated Blocks:
+ Total size:	45359446 B
+ Total files:	1
+ Total blocks (validated):	1 (avg. block size 45359446 B)
+ Minimally replicated blocks:	1 (100.0 %)
+ Over-replicated blocks:	0 (0.0 %)
+ Under-replicated blocks:	0 (0.0 %)
+ Mis-replicated blocks:		0 (0.0 %)
+ Default replication factor:	1
+ Average block replication:	1.0
+ Missing blocks:		0
+ Corrupt blocks:		0
+ Missing replicas:		0 (0.0 %)
+ Blocks queued for replication:	0
+
+Erasure Coded Block Groups:
+ Total size:	0 B
+ Total files:	0
+ Total block groups (validated):	0
+ Minimally erasure-coded block groups:	0
+ Over-erasure-coded block groups:	0
+ Under-erasure-coded block groups:	0
+ Unsatisfactory placement block groups:	0
+ Average block group size:	0.0
+ Missing block groups:		0
+ Corrupt block groups:		0
+ Missing internal blocks:	0
+ Blocks queued for replication:	0
+FSCK ended at Fri Oct 23 19:05:53 UTC 2026 in 6 milliseconds
+
+
+The filesystem under path '/radar/raw/hourly/dt=2024-06-03/pageviews-20240603-000000.gz' is HEALTHY
+
+$ hdfs dfs -setrep 2 /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-000000.gz   (only 1 DataNode, so it stays under-replicated)
+Replication 2 set: /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-000000.gz
+Status: HEALTHY
+ Under-replicated blocks:	1 (100.0 %)
+
+$ hdfs dfs -setrep 1 /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-000000.gz   (back to 1)
+Replication 1 set: /radar/raw/hourly/dt=2024-06-03/pageviews-20240603-000000.gz
+
+$ hdfs dfs -cat <file> | zcat | head -5
+"" Category:Contents/id 1 0
+"" Category:Status_updates/szl 1 0
+"" File:Wikifunctions-logo.svg 3 0
+"" MediaWiki:Sitenotice 1 0
+"" Special:MyLanguage/Wikifunctions:About 2 0
+cat: Unable to write to output stream.
