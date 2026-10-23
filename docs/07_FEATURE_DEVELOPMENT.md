@@ -55,14 +55,13 @@ for line in stdin:
 - **Counters** in streaming: write `reporter:counter:Radar,bad_lines,1` to **stderr**.
 - **Key** = first 4 fields, **value** = views. Set `-D stream.num.map.output.key.fields=4`.
 
-**Combiner and reducer `mr1_reducer.py`:** sum `views` for consecutive equal keys (input is sorted). The same script works as combiner because summing is associative and commutative.
+**Combiner and reducer `sum_reducer.py`:** sum `views` for consecutive equal keys (input is sorted). The key is everything before the last tab, so the same script serves MR1 (4 key fields) and MR2 (3 key fields). It also works as the combiner because summing is associative and commutative (test T-M2).
 
-**Partitioner:** partition by `lang` only, so each reducer's output holds one language:
+**Combiner: used in MR2, off by default in MR1.** The first full run showed `Combine input records` ≈ `Combine output records` for MR1: each hourly file already has every (lang, platform, title, hour) key exactly once, so the combiner only costs CPU. In MR2 one mapper reads all 24 hours and both platforms of a language, so the combiner collapses up to 48 rows into one before the shuffle. Benchmark B1 therefore measures MR2. (`run_mr1.sh --combiner` still turns it on for comparison.)
 
-```
--D mapreduce.partition.keypartitioner.options=-k1,1
--partitioner org.apache.hadoop.mapred.lib.KeyFieldBasedPartitioner
-```
+**Streaming gotcha:** a streaming combiner's output is split into key and value using the *reduce* output settings, which default to 1 key field. Without `-D stream.num.reduce.output.key.fields` set to the same value as `stream.num.map.output.key.fields`, everything after the combiner is keyed by language only: the job still succeeds but `Reduce input groups` drops to 5 and the reducer no longer sees equal keys next to each other. Both MR1 and MR2 set it.
+
+**Partitioner `radar.mr.LangPartitioner` (custom, Java):** sends each language to its own reducer, so `part-00000` holds only `en`, `part-00001` only `hi`, and so on, in the order of `languages` in `settings.yaml`. Hadoop's built-in `KeyFieldBasedPartitioner -k1,1` hashes the language instead, and with five keys and five reducers two languages often land in the same file while another reducer gets nothing. Source: `mapreduce/java/LangPartitioner.java`, built into `mapreduce/lib/radar-mr.jar` by `mapreduce/build_jar.sh`, shipped with `-libjars` and given the order through `-D radar.langs=en,hi,ta,ja,pt`.
 
 **Compression**
 
@@ -73,25 +72,30 @@ for line in stdin:
 -D mapreduce.output.fileoutputformat.compress.codec=org.apache.hadoop.io.compress.GzipCodec
 ```
 
-**Run script `mapreduce/run_mr1.sh <dt>`**
+**Run script `mapreduce/run_mr1.sh <day> [--no-combiner] [--map-compress none|snappy|gzip] [--quick] [--out PATH]`** (core of the command):
 
 ```bash
 mapred streaming \
-  -D mapreduce.job.name="MR1 filter_normalise $DT" \
+  -libjars mapreduce/lib/radar-mr.jar \
+  -D mapreduce.job.name="MR1 filter_normalise $DAY" \
   -D stream.num.map.output.key.fields=4 \
-  -D mapreduce.partition.keypartitioner.options=-k1,1 \
+  -D stream.num.reduce.output.key.fields=4 \
   -D mapreduce.job.reduces=5 \
+  -D radar.langs=en,hi,ta,ja,pt \
   -D mapreduce.map.output.compress=true \
   -D mapreduce.map.output.compress.codec=org.apache.hadoop.io.compress.SnappyCodec \
   -D mapreduce.output.fileoutputformat.compress=true \
   -D mapreduce.output.fileoutputformat.compress.codec=org.apache.hadoop.io.compress.GzipCodec \
-  -files mr1_mapper.py,mr1_reducer.py,common_title.py,/workspace/config/settings.yaml \
-  -mapper "python3 mr1_mapper.py" -combiner "python3 mr1_reducer.py" -reducer "python3 mr1_reducer.py" \
-  -partitioner org.apache.hadoop.mapred.lib.KeyFieldBasedPartitioner \
-  -input /radar/raw/hourly/dt=$DT -output /radar/staged/hourly/dt=$DT
+  -files mr1_mapper.py,sum_reducer.py,common_title.py \
+  -cmdenv RADAR_LANGS=en,hi,ta,ja,pt \
+  -mapper "python3 mr1_mapper.py" -reducer "python3 sum_reducer.py" \
+  -partitioner radar.mr.LangPartitioner \
+  -input /radar/raw/hourly/dt=$DAY -output /radar/staged/hourly/dt=$DAY
 ```
 
-(`mapreduce.job.reduces` = number of languages.)
+The options are flags so the benchmarks (B1, B2) reuse the same script. Every run's full log, including the job counters, is saved in `benchmarks/results/logs/`.
+
+(`mapreduce.job.reduces` = number of languages. The mapper also reports its own counters in group `Radar`: `lines_in`, `kept`, `other_domain`, `non_content`, `bad_lines`.)
 
 **Check:** sum of views per language in the output equals the same sum computed by a Hive query on `raw_hourly` with identical filters (conservation test, `09_TESTING_QA.md` T-D2).
 
@@ -99,7 +103,7 @@ mapred streaming \
 
 ## F3 · MR2 daily_agg, MR3 top_n, MR4 search (FR-6, FR-7)
 
-**MR2:** the mapper drops `platform` and the hour→day part and emits `lang \t title \t day \t views`. The combiner/reducer sums. Output `/radar/staged/daily/dt=...`.
+**MR2:** the mapper drops `platform` and the hour→day part and emits `lang \t title \t day \t views`. `sum_reducer.py` is the combiner and reducer, with the same `LangPartitioner`. Output `/radar/staged/daily/dt=...`.
 
 **MR3 top_n (sorting):**
 - Mapper emits `lang \t day \t views \t title`.
@@ -110,9 +114,9 @@ mapred streaming \
   -D mapreduce.partition.keycomparator.options="-k1,1 -k2,2 -k3,3nr"
   -D mapreduce.partition.keypartitioner.options=-k1,2
   ```
-- The reducer keeps the first 100 rows per (lang, day).
+- The reducer keeps the first 100 rows per (lang, day). The mapper drops rows under 100 views first, which removes most of the long tail before the shuffle.
 
-**MR4 search:** the mapper reads MR1 output and emits only rows whose title equals `os.environ["SEARCH_TITLE"]` (passed with `-cmdenv SEARCH_TITLE=...`). Map-only job (`-numReduceTasks 0`). Demonstrates searching without an index.
+**MR4 search:** the mapper reads MR1 output and emits only rows whose title equals `os.environ["SEARCH_TITLE"]` (passed with `-cmdenv SEARCH_TITLE=...`). Map-only job (`-D mapreduce.job.reduces=0`). `SEARCH_LANG` optionally limits it to one language. Demonstrates searching without an index.
 
 **Check:** MR3 top-1 for `en` on the dev day matches `SELECT ... ORDER BY views DESC LIMIT 1` in Hive.
 

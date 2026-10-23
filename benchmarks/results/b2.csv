@@ -1,0 +1,4 @@
+run,map_output_records,map_output_bytes,map_output_materialized_bytes,combine_input_records,combine_output_records,reduce_input_records,reduce_shuffle_bytes,spilled_records,cpu_ms,hdfs_bytes_written,kept_rows,wall_seconds,succeeded
+map_compress=none,15808842,744272399,775895884,0,0,15808842,775895884,47426526,126730,98355657,15808842,82,True
+map_compress=snappy,15808842,744272399,249805394,0,0,15808842,249805394,47426526,115080,98355657,15808842,75,True
+map_compress=gzip,15808842,744272399,164104070,0,0,15808842,164104070,47426526,181550,98355657,15808842,91,True

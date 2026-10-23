@@ -37,17 +37,19 @@ Saved Wikidata responses live in `tests/fixtures/wikidata/*.json`, so unit tests
 Hadoop Streaming is "stdin → stdout", so jobs can be tested with Unix pipes on a fixture file:
 
 ```bash
-export mapreduce_map_input_file=pageviews-20240603-120000.gz
-zcat tests/fixtures/pageviews-sample.gz \
-  | python3 mapreduce/mr1_mapper.py \
-  | sort -t$'\t' -k1,4 \
-  | python3 mapreduce/mr1_reducer.py > /tmp/mr1_out.tsv
-diff /tmp/mr1_out.tsv tests/fixtures/mr1_expected.tsv
+export mapreduce_map_input_file=pageviews-20240603-120000 PYTHONPATH=mapreduce
+cat tests/fixtures/mr/pageviews-20240603-120000 \
+  | python3 mapreduce/mr1_mapper.py 2>/dev/null \
+  | LC_ALL=C sort -t$'\t' -k1,4 \
+  | python3 mapreduce/sum_reducer.py > /tmp/mr1_out.tsv
+diff <(LC_ALL=C sort /tmp/mr1_out.tsv) <(LC_ALL=C sort tests/fixtures/mr/expected_mr1.tsv) && echo "T-M1 OK"
 ```
+
+The same checks, plus T-M2 to T-M5 and MR4, run with `bash tests/mr/test_combiner.sh` (pytest, a second or two).
 
 | ID | Test |
 |---|---|
-| T-M1 | MR1 output equals the expected fixture (200 hand-made lines covering every filter rule) |
+| T-M1 | MR1 output equals the expected fixture (`tests/fixtures/mr/`: 30 hand-made lines covering every filter rule) |
 | T-M2 | Running the reducer as a combiner and then the reducer gives the same result as the reducer alone |
 | T-M3 | MR2 sums hours into days correctly across midnight (hours 23 and 00 go to different days) |
 | T-M4 | MR3 keeps exactly 100 rows per (lang, day), in descending order |

@@ -1,0 +1,3 @@
+run,map_output_records,map_output_bytes,map_output_materialized_bytes,combine_input_records,combine_output_records,reduce_input_records,reduce_shuffle_bytes,spilled_records,cpu_ms,hdfs_bytes_written,kept_rows,wall_seconds,succeeded
+combiner=yes,64879144,2378851922,124663555,76304547,19572228,8146825,124663555,35625262,195170,65596362,,132,True
+combiner=no,64879144,2378851922,306122816,0,0,64879144,306122816,234613226,221910,65596362,,146,True
