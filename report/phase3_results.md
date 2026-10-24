@@ -82,10 +82,30 @@ T-D2 is the strongest check in the project so far: two separate implementations 
 
 Conclusion for the report: in this single-machine setup Hive is used for what it does well (schema and metastore, UDFs, SQL that reduces data to a few groups, columnar scans: 49 million ORC rows summed in 12 seconds), and Spark does the heavy many-key grouping and joining. The same split is common in production, where Hive usually runs on a cluster with Tez or LLAP rather than in local mode.
 
-## Screenshots to add (report/assets/)
+## Screenshots (report/assets/)
 
-- `p3_hive_ui.png`: HiveServer2 web UI (localhost:10002)
-- `p3_udf_register.png`: `register.hql` result row and `DESCRIBE FUNCTION EXTENDED`
-- `p3_dq_hive.png`: T-D2 table; `p3_dq_spark.png`: the two Spark PASS lines
-- `p3_analysis_*.png`: A1–A8 tables (A4 from Spark)
-- `p3_b3.png`: the three B3 lines
+Screenshots of the terminal and web UIs from the runs. Files marked *re-drawn* were produced from the exact text output of the same runs with a font that shows Hindi and Tamil correctly (the Windows terminal font cannot join Indic characters); the numbers are unchanged.
+
+| File | Shows |
+|---|---|
+| `p3_hive_ui.png` | HiveServer2 web UI (localhost:10002), Hive 4.0.1 |
+| `p3_udf_register.png` | *re-drawn*: UDF test row and `DESCRIBE FUNCTION EXTENDED` (PERSISTENT, jar in HDFS) |
+| `p3_dq_hive.png` | *re-drawn*: T-D2 per language, warehouse load, hours per language, T-D10 |
+| `p3_dq_spark.png` | *re-drawn*: T-D3 and T-D4 PASS lines |
+| `p3_analysis_a1_a2.png`, `p3_analysis_a3_a5_a6.png`, `p3_analysis_a7_a8.png` | Hive analysis output as printed by beeline |
+| `p3_analysis_a1_clean.png`, `p3_analysis_a6_clean.png` | *re-drawn*: A1 and A6 with Hindi and Tamil titles readable |
+| `p3_analysis_a4_spark.png` | *re-drawn*: A4 day-over-day jumps from Spark |
+| `p3_b3.png` | B3 output: size and three query times per format |
+| `p2_mr3_top5_clean.png` | *re-drawn*: Phase 2 MR3 top 5 with readable Hindi and Tamil |
+
+![HiveServer2 UI](assets/p3_hive_ui.png)
+![UDF registration](assets/p3_udf_register.png)
+![DQ Hive](assets/p3_dq_hive.png)
+![DQ Spark](assets/p3_dq_spark.png)
+![A1](assets/p3_analysis_a1_clean.png)
+![A1 A2](assets/p3_analysis_a1_a2.png)
+![A3 A5 A6](assets/p3_analysis_a3_a5_a6.png)
+![A6](assets/p3_analysis_a6_clean.png)
+![A7 A8](assets/p3_analysis_a7_a8.png)
+![A4 Spark](assets/p3_analysis_a4_spark.png)
+![B3](assets/p3_b3.png)
