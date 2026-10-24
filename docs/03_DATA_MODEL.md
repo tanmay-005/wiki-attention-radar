@@ -130,36 +130,41 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 LOCATION '/radar/staged/daily';
 ```
 
-### 3.4 Warehouse tables (managed, columnar)
+### 3.4 Warehouse tables (external, columnar)
+
+All warehouse tables are **external with explicit locations** under `/radar/warehouse/radar.db/`. Hive 4 converts plain managed tables into ACID tables or moves them to its own external folder; external tables keep the plain ORC files exactly where Spark reads them, and the tables can be recreated from the DDL without reloading if the metastore is lost. Full DDL: `hive/02_warehouse.hql`. The ORC files are written by `spark/jobs/load_warehouse.py` (see `07_FEATURE_DEVELOPMENT.md` F4 for why the load runs in Spark), then registered with `MSCK REPAIR TABLE`.
 
 ```sql
-CREATE TABLE radar.hourly_views (
+CREATE EXTERNAL TABLE radar.hourly_views (
   lang STRING, page_title STRING, hour_ts TIMESTAMP,
   views_desktop BIGINT, views_mobile BIGINT, views BIGINT
 )
-PARTITIONED BY (dt STRING)
-STORED AS ORC TBLPROPERTIES ("orc.compress"="ZLIB");
+PARTITIONED BY (dt STRING) STORED AS ORC
+LOCATION '/radar/warehouse/radar.db/hourly_views'
+TBLPROPERTIES ('orc.compress'='ZLIB', 'transactional'='false');
 
-CREATE TABLE radar.daily_views (
+CREATE EXTERNAL TABLE radar.daily_views (
   lang STRING, page_title STRING, day DATE, views BIGINT
 )
-PARTITIONED BY (dt STRING) STORED AS ORC;
+PARTITIONED BY (dt STRING) STORED AS ORC
+LOCATION '/radar/warehouse/radar.db/daily_views';
 
-CREATE TABLE radar.country_daily (
+CREATE EXTERNAL TABLE radar.country_daily (
   country STRING,            -- ISO code (IN, US, ...)
   country_name STRING,
   lang STRING,               -- from project: en.wikipedia -> en (configured languages only)
-  page_id BIGINT, page_title STRING,
+  page_id BIGINT, page_title STRING,   -- page_title cleaned with normalize_title
   qid STRING, views BIGINT
 )
-PARTITIONED BY (dt STRING) STORED AS ORC;
-
--- Format comparison copies (benchmarks only)
-CREATE TABLE radar.hourly_views_parquet STORED AS PARQUET AS SELECT * FROM radar.hourly_views;
-CREATE TABLE radar.hourly_views_text   STORED AS TEXTFILE AS SELECT * FROM radar.hourly_views;
+PARTITIONED BY (dt STRING) STORED AS ORC
+LOCATION '/radar/warehouse/radar.db/country_daily';
 ```
 
-`lang` is derived from `domain_code` (`en.m` → `en`, platform `mobile`). Titles are normalised by the UDF `normalize_title` (section 3.6).
+Rows are written sorted by `lang, page_title` (`country_daily`: by country, lang, views), so ORC's min/max statistics let queries on one language skip most of the file.
+
+Format comparison copies for benchmark B3 (written by `benchmarks/b3_make_copies.py`, tables in `benchmarks/b3_formats.hql`): `hourly_views_text` (uncompressed TEXTFILE) and `hourly_views_parquet` (Parquet, Snappy) under `/radar/benchmarks/b3/`.
+
+`lang` is derived from `domain_code` (`en.m` → `en`, platform `mobile`). The staged layer also has `staged_topn` (MR3 output: `lang, day, rank_no, views, page_title`).
 
 ### 3.5 Spark outputs registered in Hive (optional, for HQL analysis)
 
@@ -174,10 +179,12 @@ CREATE EXTERNAL TABLE radar.events        STORED AS PARQUET LOCATION '/radar/out
 
 | Function | Type | Behaviour |
 |---|---|---|
-| `normalize_title(s)` | Java GenericUDF | URL-decode, `_` → space, trim, collapse spaces, cap length at 255 |
-| `is_content_page(title)` | Java GenericUDF | false for namespaces (`Special:`, `File:`, `Category:`, `Talk:`, `User:`, `Wikipedia:`, `Template:`, `Help:`, `Portal:`, `Draft:`, `Module:`), `Main_Page`, `-` |
+| `normalize_title(s)` | Java GenericUDF | URL-decode, `_` → space, remove tabs/newlines, collapse whitespace, cap at 255 characters |
+| `is_content_page(lang, title)` | Java GenericUDF | false for `-`, main pages, and namespace pages: English names on every wiki (`Special:`, `File:`, `Category:`, `Talk:`, `User:`, `Wikipedia:`, `Template:`, ...) plus each wiki's own names (`श्रेणी:`, `特別:`, `Predefinição:`, ...) |
 
-Hive data types used: `STRING, BIGINT, DATE, TIMESTAMP`; complex types are demonstrated in `hive/03_analysis.hql` (`ARRAY<STRING>` via `collect_set`, `MAP<STRING,BIGINT>` via `str_to_map`).
+Both are thin wrappers around `hive/udf/TitleRules.java`, a line-by-line port of `mapreduce/common_title.py`. `tests/unit/test_udf_parity.py` runs the Java and Python versions on the same titles (namespace names in several spellings, tricky percent-encoding, random input) and fails on any difference, so Hive and MapReduce always keep and clean the same pages.
+
+Hive data types used: `STRING, BIGINT, DATE, TIMESTAMP`; complex types are demonstrated in `hive/03_analysis.hql` (`ARRAY<STRING>` via `collect_set`, `MAP<STRING,STRING>` via `str_to_map`).
 
 ---
 

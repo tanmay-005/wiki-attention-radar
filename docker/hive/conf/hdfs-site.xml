@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<!-- HDFS client settings for Hive: only one DataNode, so write one copy of each block
+     (the default of 3 would leave every file Hive writes "under-replicated"). -->
+<configuration>
+  <property><name>dfs.replication</name><value>1</value></property>
+</configuration>

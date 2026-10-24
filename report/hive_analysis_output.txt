@@ -1,0 +1,728 @@
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/opt/hive/lib/log4j-slf4j-impl-2.18.0.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/opt/hadoop/share/hadoop/common/lib/slf4j-reload4j-1.7.36.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.apache.logging.slf4j.Log4jLoggerFactory]
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/opt/hive/lib/log4j-slf4j-impl-2.18.0.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/opt/hadoop/share/hadoop/common/lib/slf4j-reload4j-1.7.36.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.apache.logging.slf4j.Log4jLoggerFactory]
+Connecting to jdbc:hive2://localhost:10000
+Connected to: Apache Hive (version 4.0.1)
+Driver: Hive JDBC (version 4.0.1)
+Transaction isolation: TRANSACTION_REPEATABLE_READ
+0: jdbc:hive2://localhost:10000> -- Step 3.7: analysis queries on the wareh ouse tables (default day 2024-06-03, next day 2024-06-04).
+0: jdbc:hive2://localhost:10000> -- Run (from docker/):  docker compose exe c hiveserver2 bash /workspace/hive/run.sh hive/03_analysis.hql
+0: jdbc:hive2://localhost:10000> -- Shows: window functions, CTEs, complex  types (ARRAY, MAP) and a TRANSFORM script.
+0: jdbc:hive2://localhost:10000> -- A4 (a join of two full days) is in Spar k: spark/jobs/day_over_day.py
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> USE radar;
+INFO  : Compiling command(queryId=hive_20261024131436_a5af2303-357e-484d-948f-a0e6e660583a): USE radar
+INFO  : Semantic Analysis Completed (retrial = false)
+INFO  : Created Hive schema: Schema(fieldSchemas:null, properties:null)
+INFO  : Completed compiling command(queryId=hive_20261024131436_a5af2303-357e-484d-948f-a0e6e660583a); Time taken: 1.299 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20261024131436_a5af2303-357e-484d-948f-a0e6e660583a): USE radar
+INFO  : Starting task [Stage-0:DDL] in serial mode
+INFO  : Completed executing command(queryId=hive_20261024131436_a5af2303-357e-484d-948f-a0e6e660583a); Time taken: 0.017 seconds
+No rows affected (1.537 seconds)
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> -- A1. Top 5 articles per language (window  function RANK)
+0: jdbc:hive2://localhost:10000> SELECT lang, rnk, page_title, views
+. . . . . . . . . . . . . . . .> FROM (
+. . . . . . . . . . . . . . . .>   SELECT lang, page_title, views,
+. . . . . . . . . . . . . . . .>          RANK() OVER (PARTITION BY lang OR DER BY views DESC) AS rnk
+. . . . . . . . . . . . . . . .>   FROM daily_views
+. . . . . . . . . . . . . . . .>   WHERE dt = '${hivevar:day}' AND views >=  1000     -- rank only popular pages: keeps the sort small
+. . . . . . . . . . . . . . . .> ) t
+. . . . . . . . . . . . . . . .> WHERE rnk <= 5
+. . . . . . . . . . . . . . . .> ORDER BY lang, rnk;
+INFO  : Compiling command(queryId=hive_20261024131437_89dd9717-230c-43b5-a7c7-280efc479c67): SELECT lang, rnk, page_title, views
+FROM (
+SELECT lang, page_title, views,
+RANK() OVER (PARTITION BY lang ORDER BY views DESC) AS rnk
+FROM daily_views
+WHERE dt = '2024-06-03' AND views >= 1000
+) t
+WHERE rnk <= 5
+ORDER BY lang, rnk
+INFO  : No Stats for radar@daily_views, Columns: page_title, lang, views
+INFO  : Semantic Analysis Completed (retrial = false)
+INFO  : Created Hive schema: Schema(fieldSchemas:[FieldSchema(name:lang, type:string, comment:null), FieldSchema(name:rnk, type:int, comment:null), FieldSchema(name:page_title, type:string, comment:null), FieldSchema(name:views, type:bigint, comment:null)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20261024131437_89dd9717-230c-43b5-a7c7-280efc479c67); Time taken: 2.239 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20261024131437_89dd9717-230c-43b5-a7c7-280efc479c67): SELECT lang, rnk, page_title, views
+FROM (
+SELECT lang, page_title, views,
+RANK() OVER (PARTITION BY lang ORDER BY views DESC) AS rnk
+FROM daily_views
+WHERE dt = '2024-06-03' AND views >= 1000
+) t
+WHERE rnk <= 5
+ORDER BY lang, rnk
+INFO  : Query ID = hive_20261024131437_89dd9717-230c-43b5-a7c7-280efc479c67
+INFO  : Total jobs = 1
+INFO  : Launching Job 1 out of 1
+INFO  : Starting task [Stage-1:MAPRED] in serial mode
+INFO  : Subscribed to counters: [] for queryId: hive_20261024131437_89dd9717-230c-43b5-a7c7-280efc479c67
+INFO  : Tez session hasn't been created yet. Opening session
+INFO  : Dag name: SELECT lang, rnk, pag......RDER BY lang, rnk (Stage-1)
+INFO  : HS2 Host: [hiveserver2], Query ID: [hive_20261024131437_89dd9717-230c-43b5-a7c7-280efc479c67], Dag ID: [dag_1792847680929_0001_1], DAG Session ID: [application_1792847680929_0001]
+INFO  : Status: Running (Executing on YARN cluster with App id application_1792847680929_0001)
+
+[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 ......     container       RUNNING      3          2        0        1       0       0  
+Reducer 2        container        INITED      2          0        0        2       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/03  [========>>------------------] 33%   ELAPSED TIME: 2.31 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      3          3        0        0       0       0  
+Reducer 2        container        INITED      2          0        0        2       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 01/03  [=============>>-------------] 50%   ELAPSED TIME: 2.82 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+INFO  : Completed executing command(queryId=hive_20261024131437_89dd9717-230c-43b5-a7c7-280efc479c67); Time taken: 6.085 seconds
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      3          3        0        0       0       0  
+Reducer 2 ...... container     SUCCEEDED      2          2        0        0       0       0  
+Reducer 3 ...... container     SUCCEEDED      1          1        0        0       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 03/03  [==========================>>] 100%  ELAPSED TIME: 3.30 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
++-------+------+----------------------------------------------------+---------+
+| lang  | rnk  |                     page_title                     |  views  |
++-------+------+----------------------------------------------------+---------+
+| en    | 1    | Claudia Sheinbaum                                  | 976829  |
+| en    | 2    | 2024 Mexican general election                      | 262085  |
+| en    | 3    | Dick Van Dyke                                      | 195809  |
+| en    | 4    | Rob Burrow                                         | 170402  |
+| en    | 5    | Kylian Mbappé                                      | 168159  |
+| hi    | 1    | क्लियोपाट्रा ७                                     | 9960    |
+| hi    | 2    | भारत के प्रधान मंत्रियों की सूची                   | 8680    |
+| hi    | 3    | भारतीय आम चुनाव, 2019                              | 7726    |
+| hi    | 4    | भारत के राज्य तथा केन्द्र-शासित प्रदेश             | 4884    |
+| hi    | 5    | लोकसभा सीटों के आधार पर भारत के राज्यों और संघ क्षेत्रों की सूची | 3737    |
+| ja    | 1    | 増山江威子                                              | 144439  |
+| ja    | 2    | 笹生優花                                               | 89510   |
+| ja    | 3    | 唐牛健太郎                                              | 68886   |
+| ja    | 4    | 二階堂有希子                                             | 29315   |
+| ja    | 5    | 森口瑤子                                               | 25763   |
+| pt    | 1    | Claudia Sheinbaum                                  | 20091   |
+| pt    | 2    | ChatGPT                                            | 16822   |
+| pt    | 3    | Kylian Mbappé                                      | 14436   |
+| pt    | 4    | Cleópatra                                          | 14213   |
+| pt    | 5    | Cetamina                                           | 12990   |
+| ta    | 1    | அண்ணாமலை குப்புசாமி                                | 1155    |
+| ta    | 2    | மு. கருணாநிதி                                      | 1149    |
++-------+------+----------------------------------------------------+---------+
+22 rows selected (8.443 seconds)
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> -- A2. How much of each Wikipedia is read  on phones
+0: jdbc:hive2://localhost:10000> SELECT lang,
+. . . . . . . . . . . . . . . .>        SUM(views) AS total_views,
+. . . . . . . . . . . . . . . .>        ROUND(100.0 * SUM(views_mobile) / S UM(views), 1) AS mobile_pct
+. . . . . . . . . . . . . . . .> FROM hourly_views
+. . . . . . . . . . . . . . . .> WHERE dt = '${hivevar:day}'
+. . . . . . . . . . . . . . . .> GROUP BY lang
+. . . . . . . . . . . . . . . .> ORDER BY total_views DESC;
+INFO  : Compiling command(queryId=hive_20261024131446_21d60d53-fba2-48a7-86f4-6b832b311ee3): SELECT lang,
+SUM(views) AS total_views,
+ROUND(100.0 * SUM(views_mobile) / SUM(views), 1) AS mobile_pct
+FROM hourly_views
+WHERE dt = '2024-06-03'
+GROUP BY lang
+ORDER BY total_views DESC
+INFO  : No Stats for radar@hourly_views, Columns: views_mobile, lang, views
+INFO  : Semantic Analysis Completed (retrial = false)
+INFO  : Created Hive schema: Schema(fieldSchemas:[FieldSchema(name:lang, type:string, comment:null), FieldSchema(name:total_views, type:bigint, comment:null), FieldSchema(name:mobile_pct, type:decimal(25,1), comment:null)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20261024131446_21d60d53-fba2-48a7-86f4-6b832b311ee3); Time taken: 0.251 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20261024131446_21d60d53-fba2-48a7-86f4-6b832b311ee3): SELECT lang,
+SUM(views) AS total_views,
+ROUND(100.0 * SUM(views_mobile) / SUM(views), 1) AS mobile_pct
+FROM hourly_views
+WHERE dt = '2024-06-03'
+GROUP BY lang
+ORDER BY total_views DESC
+INFO  : Query ID = hive_20261024131446_21d60d53-fba2-48a7-86f4-6b832b311ee3
+INFO  : Total jobs = 1
+INFO  : Launching Job 1 out of 1
+INFO  : Starting task [Stage-1:MAPRED] in serial mode
+INFO  : Subscribed to counters: [] for queryId: hive_20261024131446_21d60d53-fba2-48a7-86f4-6b832b311ee3
+INFO  : Session is already open
+INFO  : Dag name: SELECT lang,
+SUM(view...... total_views DESC (Stage-1)
+INFO  : HS2 Host: [hiveserver2], Query ID: [hive_20261024131446_21d60d53-fba2-48a7-86f4-6b832b311ee3], Dag ID: [dag_1792847680929_0001_2], DAG Session ID: [application_1792847680929_0001]
+INFO  : Status: Running (Executing on YARN cluster with App id application_1792847680929_0001)
+
+[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1            container       RUNNING      4          0        1        3       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/03  [>>--------------------------] 0%    ELAPSED TIME: 1.41 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 ..         container       RUNNING      4          1        1        2       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/03  [===>>-----------------------] 12%   ELAPSED TIME: 1.92 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 ..         container       RUNNING      4          1        1        2       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/03  [===>>-----------------------] 12%   ELAPSED TIME: 2.42 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .....      container       RUNNING      4          2        1        1       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/03  [======>>--------------------] 25%   ELAPSED TIME: 2.93 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .....      container       RUNNING      4          2        1        1       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/03  [======>>--------------------] 25%   ELAPSED TIME: 3.67 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......    container       RUNNING      4          3        1        0       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/03  [=========>>-----------------] 37%   ELAPSED TIME: 4.18 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      4          4        0        0       0       0  
+Reducer 2 ....   container       RUNNING      3          2        0        1       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 01/03  [===================>>-------] 75%   ELAPSED TIME: 4.68 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      4          4        0        0       0       0  
+Reducer 2 ....   container       RUNNING      3          2        0        1       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 01/03  [===================>>-------] 75%   ELAPSED TIME: 5.19 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      4          4        0        0       0       0  
+Reducer 2 ...... container     SUCCEEDED      3          3        0        0       0       0  
+Reducer 3 ...... container     SUCCEEDED      1          1        0        0       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 03/03  [==========================>>] 100%  ELAPSED TIME: 5.53 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+INFO  : Completed executing command(queryId=hive_20261024131446_21d60d53-fba2-48a7-86f4-6b832b311ee3); Time taken: 5.619 seconds
++-------+--------------+-------------+
+| lang  | total_views  | mobile_pct  |
++-------+--------------+-------------+
+| en    | 237354936    | 66.1        |
+| ja    | 28022508     | 65.0        |
+| pt    | 7535285      | 70.7        |
+| hi    | 1243566      | 91.8        |
+| ta    | 328494       | 86.9        |
++-------+--------------+-------------+
+5 rows selected (5.901 seconds)
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> -- A3. Busiest hour (UTC) for each languag e: shows the readers' time zones
+0: jdbc:hive2://localhost:10000> SELECT lang, hour(hour_ts) AS peak_hour_ut c, views
+. . . . . . . . . . . . . . . .> FROM (
+. . . . . . . . . . . . . . . .>   SELECT lang, hour_ts, SUM(views) AS view s,
+. . . . . . . . . . . . . . . .>          ROW_NUMBER() OVER (PARTITION BY l ang ORDER BY SUM(views) DESC) AS rn
+. . . . . . . . . . . . . . . .>   FROM hourly_views
+. . . . . . . . . . . . . . . .>   WHERE dt = '${hivevar:day}'
+. . . . . . . . . . . . . . . .>   GROUP BY lang, hour_ts
+. . . . . . . . . . . . . . . .> ) t
+. . . . . . . . . . . . . . . .> WHERE rn = 1
+. . . . . . . . . . . . . . . .> ORDER BY lang;
+INFO  : Compiling command(queryId=hive_20261024131452_427c96e0-1697-4d07-a1e0-a9eaa9403046): SELECT lang, hour(hour_ts) AS peak_hour_utc, views
+FROM (
+SELECT lang, hour_ts, SUM(views) AS views,
+ROW_NUMBER() OVER (PARTITION BY lang ORDER BY SUM(views) DESC) AS rn
+FROM hourly_views
+WHERE dt = '2024-06-03'
+GROUP BY lang, hour_ts
+) t
+WHERE rn = 1
+ORDER BY lang
+INFO  : No Stats for radar@hourly_views, Columns: hour_ts, lang, views
+INFO  : Semantic Analysis Completed (retrial = false)
+INFO  : Created Hive schema: Schema(fieldSchemas:[FieldSchema(name:lang, type:string, comment:null), FieldSchema(name:peak_hour_utc, type:int, comment:null), FieldSchema(name:views, type:bigint, comment:null)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20261024131452_427c96e0-1697-4d07-a1e0-a9eaa9403046); Time taken: 0.185 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20261024131452_427c96e0-1697-4d07-a1e0-a9eaa9403046): SELECT lang, hour(hour_ts) AS peak_hour_utc, views
+FROM (
+SELECT lang, hour_ts, SUM(views) AS views,
+ROW_NUMBER() OVER (PARTITION BY lang ORDER BY SUM(views) DESC) AS rn
+FROM hourly_views
+WHERE dt = '2024-06-03'
+GROUP BY lang, hour_ts
+) t
+WHERE rn = 1
+ORDER BY lang
+INFO  : Query ID = hive_20261024131452_427c96e0-1697-4d07-a1e0-a9eaa9403046
+INFO  : Total jobs = 1
+INFO  : Launching Job 1 out of 1
+INFO  : Starting task [Stage-1:MAPRED] in serial mode
+INFO  : Subscribed to counters: [] for queryId: hive_20261024131452_427c96e0-1697-4d07-a1e0-a9eaa9403046
+INFO  : Session is already open
+INFO  : Dag name: SELECT lang, hour(hou......= 1
+ORDER BY lang (Stage-1)
+INFO  : HS2 Host: [hiveserver2], Query ID: [hive_20261024131452_427c96e0-1697-4d07-a1e0-a9eaa9403046], Dag ID: [dag_1792847680929_0001_3], DAG Session ID: [application_1792847680929_0001]
+INFO  : Status: Running (Executing on YARN cluster with App id application_1792847680929_0001)
+
+[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1            container       RUNNING      4          0        1        3       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      2          0        0        2       0       0  
+Reducer 4        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/04  [>>--------------------------] 0%    ELAPSED TIME: 1.41 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[10A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 ..         container       RUNNING      4          1        0        3       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      2          0        0        2       0       0  
+Reducer 4        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/04  [==>>------------------------] 10%   ELAPSED TIME: 1.92 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[10A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 ..         container       RUNNING      4          1        1        2       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      2          0        0        2       0       0  
+Reducer 4        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/04  [==>>------------------------] 10%   ELAPSED TIME: 2.43 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[10A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 ..         container       RUNNING      4          1        1        2       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      2          0        0        2       0       0  
+Reducer 4        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/04  [==>>------------------------] 10%   ELAPSED TIME: 2.93 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[10A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .....      container       RUNNING      4          2        1        1       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      2          0        0        2       0       0  
+Reducer 4        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/04  [=====>>---------------------] 20%   ELAPSED TIME: 3.44 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[10A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .....      container       RUNNING      4          2        1        1       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      2          0        0        2       0       0  
+Reducer 4        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/04  [=====>>---------------------] 20%   ELAPSED TIME: 3.94 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[10A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......    container       RUNNING      4          3        0        1       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      2          0        0        2       0       0  
+Reducer 4        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/04  [=======>>-------------------] 30%   ELAPSED TIME: 4.45 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[10A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......    container       RUNNING      4          3        1        0       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      2          0        0        2       0       0  
+Reducer 4        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/04  [=======>>-------------------] 30%   ELAPSED TIME: 4.96 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[10A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......    container       RUNNING      4          3        1        0       0       0  
+Reducer 2        container        INITED      3          0        0        3       0       0  
+Reducer 3        container        INITED      2          0        0        2       0       0  
+Reducer 4        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/04  [=======>>-------------------] 30%   ELAPSED TIME: 5.46 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[10A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      4          4        0        0       0       0  
+Reducer 2 ....   container       RUNNING      3          2        0        1       0       0  
+Reducer 3        container        INITED      2          0        0        2       0       0  
+Reducer 4        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 01/04  [===============>>-----------] 60%   ELAPSED TIME: 5.97 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[10A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      4          4        0        0       0       0  
+Reducer 2 ...... container     SUCCEEDED      3          3        0        0       0       0  
+Reducer 3 ...... container     SUCCEEDED      2          2        0        0       0       0  
+Reducer 4 ...... container     SUCCEEDED      1          1        0        0       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 04/04  [==========================>>] 100%  ELAPSED TIME: 6.35 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+INFO  : Completed executing command(queryId=hive_20261024131452_427c96e0-1697-4d07-a1e0-a9eaa9403046); Time taken: 6.437 seconds
++-------+----------------+-----------+
+| lang  | peak_hour_utc  |   views   |
++-------+----------------+-----------+
+| en    | 20             | 11715420  |
+| hi    | 7              | 81103     |
+| ja    | 13             | 1962245   |
+| pt    | 1              | 470102    |
+| ta    | 7              | 22136     |
++-------+----------------+-----------+
+5 rows selected (6.648 seconds)
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> -- A5. Countries reading English Wikipedia  the most
+0: jdbc:hive2://localhost:10000> SELECT country, country_name, SUM(views) A S views, COUNT(*) AS articles
+. . . . . . . . . . . . . . . .> FROM country_daily
+. . . . . . . . . . . . . . . .> WHERE dt = '${hivevar:day}' AND lang = 'en '
+. . . . . . . . . . . . . . . .> GROUP BY country, country_name
+. . . . . . . . . . . . . . . .> ORDER BY views DESC
+. . . . . . . . . . . . . . . .> LIMIT 10;
+INFO  : Compiling command(queryId=hive_20261024131459_dc189ad2-ad32-4d3e-af63-b5671ce522f0): SELECT country, country_name, SUM(views) AS views, COUNT(*) AS articles
+FROM country_daily
+WHERE dt = '2024-06-03' AND lang = 'en'
+GROUP BY country, country_name
+ORDER BY views DESC
+LIMIT 10
+INFO  : No Stats for radar@country_daily, Columns: country, country_name, lang, views
+INFO  : Semantic Analysis Completed (retrial = false)
+INFO  : Created Hive schema: Schema(fieldSchemas:[FieldSchema(name:country, type:string, comment:null), FieldSchema(name:country_name, type:string, comment:null), FieldSchema(name:views, type:bigint, comment:null), FieldSchema(name:articles, type:bigint, comment:null)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20261024131459_dc189ad2-ad32-4d3e-af63-b5671ce522f0); Time taken: 0.175 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20261024131459_dc189ad2-ad32-4d3e-af63-b5671ce522f0): SELECT country, country_name, SUM(views) AS views, COUNT(*) AS articles
+FROM country_daily
+WHERE dt = '2024-06-03' AND lang = 'en'
+GROUP BY country, country_name
+ORDER BY views DESC
+LIMIT 10
+INFO  : Query ID = hive_20261024131459_dc189ad2-ad32-4d3e-af63-b5671ce522f0
+INFO  : Total jobs = 1
+INFO  : Launching Job 1 out of 1
+INFO  : Starting task [Stage-1:MAPRED] in serial mode
+INFO  : Subscribed to counters: [] for queryId: hive_20261024131459_dc189ad2-ad32-4d3e-af63-b5671ce522f0
+INFO  : Session is already open
+INFO  : Dag name: SELECT country, count......ews DESC
+LIMIT 10 (Stage-1)
+INFO  : HS2 Host: [hiveserver2], Query ID: [hive_20261024131459_dc189ad2-ad32-4d3e-af63-b5671ce522f0], Dag ID: [dag_1792847680929_0001_4], DAG Session ID: [application_1792847680929_0001]
+INFO  : Status: Running (Executing on YARN cluster with App id application_1792847680929_0001)
+
+[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      1          1        0        0       0       0  
+Reducer 2 ...... container     SUCCEEDED      1          1        0        0       0       0  
+Reducer 3 ...... container     SUCCEEDED      1          1        0        0       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 03/03  [==========================>>] 100%  ELAPSED TIME: 1.12 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+INFO  : Completed executing command(queryId=hive_20261024131459_dc189ad2-ad32-4d3e-af63-b5671ce522f0); Time taken: 1.179 seconds
++----------+-----------------+-----------+-----------+
+| country  |  country_name   |   views   | articles  |
++----------+-----------------+-----------+-----------+
+| US       | United States   | 55133950  | 138436    |
+| IN       | India           | 10338533  | 28184     |
+| GB       | United Kingdom  | 9786162   | 33938     |
+| CA       | Canada          | 3452150   | 14344     |
+| AU       | Australia       | 1875608   | 8598      |
+| PH       | Philippines     | 672265    | 2775      |
+| RU       | Russia          | 632547    | 237       |
+| DE       | Germany         | 486854    | 2510      |
+| ID       | Indonesia       | 315286    | 1297      |
+| MY       | Malaysia        | 256208    | 1217      |
++----------+-----------------+-----------+-----------+
+10 rows selected (1.392 seconds)
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> -- A6. Top 3 articles per language among r eaders in India
+0: jdbc:hive2://localhost:10000> SELECT lang, page_title, views
+. . . . . . . . . . . . . . . .> FROM (
+. . . . . . . . . . . . . . . .>   SELECT lang, page_title, views,
+. . . . . . . . . . . . . . . .>          ROW_NUMBER() OVER (PARTITION BY l ang ORDER BY views DESC) AS rn
+. . . . . . . . . . . . . . . .>   FROM country_daily
+. . . . . . . . . . . . . . . .>   WHERE dt = '${hivevar:day}' AND country  = 'IN'
+. . . . . . . . . . . . . . . .> ) t
+. . . . . . . . . . . . . . . .> WHERE rn <= 3
+. . . . . . . . . . . . . . . .> ORDER BY lang, views DESC;
+INFO  : Compiling command(queryId=hive_20261024131500_4c917fbc-c263-4bbb-a0a5-8d9b7551ed36): SELECT lang, page_title, views
+FROM (
+SELECT lang, page_title, views,
+ROW_NUMBER() OVER (PARTITION BY lang ORDER BY views DESC) AS rn
+FROM country_daily
+WHERE dt = '2024-06-03' AND country = 'IN'
+) t
+WHERE rn <= 3
+ORDER BY lang, views DESC
+INFO  : No Stats for radar@country_daily, Columns: country, page_title, lang, views
+INFO  : Semantic Analysis Completed (retrial = false)
+INFO  : Created Hive schema: Schema(fieldSchemas:[FieldSchema(name:lang, type:string, comment:null), FieldSchema(name:page_title, type:string, comment:null), FieldSchema(name:views, type:bigint, comment:null)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20261024131500_4c917fbc-c263-4bbb-a0a5-8d9b7551ed36); Time taken: 0.162 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20261024131500_4c917fbc-c263-4bbb-a0a5-8d9b7551ed36): SELECT lang, page_title, views
+FROM (
+SELECT lang, page_title, views,
+ROW_NUMBER() OVER (PARTITION BY lang ORDER BY views DESC) AS rn
+FROM country_daily
+WHERE dt = '2024-06-03' AND country = 'IN'
+) t
+WHERE rn <= 3
+ORDER BY lang, views DESC
+INFO  : Query ID = hive_20261024131500_4c917fbc-c263-4bbb-a0a5-8d9b7551ed36
+INFO  : Total jobs = 1
+INFO  : Launching Job 1 out of 1
+INFO  : Starting task [Stage-1:MAPRED] in serial mode
+INFO  : Subscribed to counters: [] for queryId: hive_20261024131500_4c917fbc-c263-4bbb-a0a5-8d9b7551ed36
+INFO  : Session is already open
+INFO  : Dag name: SELECT lang, page_tit...... lang, views DESC (Stage-1)
+INFO  : HS2 Host: [hiveserver2], Query ID: [hive_20261024131500_4c917fbc-c263-4bbb-a0a5-8d9b7551ed36], Dag ID: [dag_1792847680929_0001_5], DAG Session ID: [application_1792847680929_0001]
+INFO  : Status: Running (Executing on YARN cluster with App id application_1792847680929_0001)
+
+INFO  : Completed executing command(queryId=hive_20261024131500_4c917fbc-c263-4bbb-a0a5-8d9b7551ed36); Time taken: 0.847 seconds
++-------+-----------------------------------+--------+
+| lang  |            page_title             | views  |
++-------+-----------------------------------+--------+
+| en    | 2019 Indian general election      | 79167  |
+| en    | 18th Lok Sabha                    | 78768  |
+| en    | 2 Girls 1 Cup                     | 73400  |
+| hi    | क्लियोपाट्रा ७                    | 9195   |
+| hi    | भारतीय आम चुनाव, 2019             | 6703   |
+| hi    | भारत के प्रधान मंत्रियों की सूची  | 6473   |
+| pt    | Xx (álbum)                        | 269    |
+| ta    | மு. கருணாநிதி                     | 903    |
+| ta    | அண்ணாமலை குப்புசாமி               | 880    |
+| ta    | தமிழ்                             | 621    |
++-------+-----------------------------------+--------+
+10 rows selected (1.065 seconds)
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> -- A7. Complex types: the same Wikidata it em read in several languages.
+0: jdbc:hive2://localhost:10000> -- collect_set builds an ARRAY<STRING>, st r_to_map builds a MAP<STRING,STRING>.
+0: jdbc:hive2://localhost:10000> SELECT qid,
+. . . . . . . . . . . . . . . .>        collect_set(lang) AS languages,
+. . . . . . . . . . . . . . . .>        str_to_map(concat_ws(',', collect_s et(concat(lang, ':', CAST(views AS STRING)))), ',', ':') AS views_by_lang,
+. . . . . . . . . . . . . . . .>        SUM(views) AS total_views
+. . . . . . . . . . . . . . . .> FROM (
+. . . . . . . . . . . . . . . .>   SELECT qid, lang, SUM(views) AS views
+. . . . . . . . . . . . . . . .>   FROM country_daily
+. . . . . . . . . . . . . . . .>   WHERE dt = '${hivevar:day}' AND qid RLIK E '^Q[0-9]+$'
+. . . . . . . . . . . . . . . .>   GROUP BY qid, lang
+. . . . . . . . . . . . . . . .> ) t
+. . . . . . . . . . . . . . . .> GROUP BY qid
+. . . . . . . . . . . . . . . .> HAVING size(collect_set(lang)) >= 3
+. . . . . . . . . . . . . . . .> ORDER BY total_views DESC
+. . . . . . . . . . . . . . . .> LIMIT 10;
+INFO  : Compiling command(queryId=hive_20261024131502_8ee9a69f-6b78-406e-94a7-943f2a08344b): SELECT qid,
+collect_set(lang) AS languages,
+str_to_map(concat_ws(',', collect_set(concat(lang, ':', CAST(views AS STRING)))), ',', ':') AS views_by_lang,
+SUM(views) AS total_views
+FROM (
+SELECT qid, lang, SUM(views) AS views
+FROM country_daily
+WHERE dt = '2024-06-03' AND qid RLIKE '^Q[0-9]+$'
+GROUP BY qid, lang
+) t
+GROUP BY qid
+HAVING size(collect_set(lang)) >= 3
+ORDER BY total_views DESC
+LIMIT 10
+INFO  : No Stats for radar@country_daily, Columns: lang, qid, views
+INFO  : No Stats for radar@country_daily, Columns: country_name
+INFO  : Semantic Analysis Completed (retrial = false)
+INFO  : Created Hive schema: Schema(fieldSchemas:[FieldSchema(name:qid, type:string, comment:null), FieldSchema(name:languages, type:array<string>, comment:null), FieldSchema(name:views_by_lang, type:map<string,string>, comment:null), FieldSchema(name:total_views, type:bigint, comment:null)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20261024131502_8ee9a69f-6b78-406e-94a7-943f2a08344b); Time taken: 0.183 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20261024131502_8ee9a69f-6b78-406e-94a7-943f2a08344b): SELECT qid,
+collect_set(lang) AS languages,
+str_to_map(concat_ws(',', collect_set(concat(lang, ':', CAST(views AS STRING)))), ',', ':') AS views_by_lang,
+SUM(views) AS total_views
+FROM (
+SELECT qid, lang, SUM(views) AS views
+FROM country_daily
+WHERE dt = '2024-06-03' AND qid RLIKE '^Q[0-9]+$'
+GROUP BY qid, lang
+) t
+GROUP BY qid
+HAVING size(collect_set(lang)) >= 3
+ORDER BY total_views DESC
+LIMIT 10
+INFO  : Query ID = hive_20261024131502_8ee9a69f-6b78-406e-94a7-943f2a08344b
+INFO  : Total jobs = 1
+INFO  : Launching Job 1 out of 1
+INFO  : Starting task [Stage-1:MAPRED] in serial mode
+INFO  : Subscribed to counters: [] for queryId: hive_20261024131502_8ee9a69f-6b78-406e-94a7-943f2a08344b
+INFO  : Session is already open
+INFO  : Dag name: SELECT qid,
+collect_s......ews DESC
+LIMIT 10 (Stage-1)
+INFO  : HS2 Host: [hiveserver2], Query ID: [hive_20261024131502_8ee9a69f-6b78-406e-94a7-943f2a08344b], Dag ID: [dag_1792847680929_0001_6], DAG Session ID: [application_1792847680929_0001]
+INFO  : Status: Running (Executing on YARN cluster with App id application_1792847680929_0001)
+
+[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      1          1        0        0       0       0  
+Reducer 2        container       RUNNING      1          0        1        0       0       0  
+Reducer 3        container        INITED      1          0        0        1       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 01/03  [========>>------------------] 33%   ELAPSED TIME: 1.45 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[9A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      1          1        0        0       0       0  
+Reducer 2 ...... container     SUCCEEDED      1          1        0        0       0       0  
+Reducer 3 ...... container     SUCCEEDED      1          1        0        0       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 03/03  [==========================>>] 100%  ELAPSED TIME: 1.51 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+INFO  : Completed executing command(queryId=hive_20261024131502_8ee9a69f-6b78-406e-94a7-943f2a08344b); Time taken: 1.561 seconds
++-------------+-----------------------------+----------------------------------------------------+--------------+
+|     qid     |          languages          |                   views_by_lang                    | total_views  |
++-------------+-----------------------------+----------------------------------------------------+--------------+
+| Q5771800    | ["en","ja","pt"]            | {"en":"836903","ja":"4412","pt":"17249"}           | 858564       |
+| Q635        | ["en","hi","ja","pt"]       | {"en":"125123","hi":"9195","ja":"887","pt":"11515"} | 146720       |
+| Q21621995   | ["en","hi","ja","pt"]       | {"en":"120400","hi":"241","ja":"7038","pt":"11932"} | 139611       |
+| Q65042773   | ["en","hi","ta"]            | {"en":"135260","hi":"2837","ta":"364"}             | 138461       |
+| Q15717618   | ["en","ja","pt"]            | {"en":"117395","ja":"605","pt":"6443"}             | 124443       |
+| Q866        | ["en","hi","ja","pt","ta"]  | {"en":"99866","hi":"539","ja":"2529","pt":"4737","ta":"112"} | 107783       |
+| Q318508     | ["en","ja","pt"]            | {"en":"97580","ja":"1395","pt":"3681"}             | 102656       |
+| Q115053037  | ["en","ja","pt"]            | {"en":"97282","ja":"2364","pt":"661"}              | 100307       |
+| Q2680       | ["en","ja","pt"]            | {"en":"82424","ja":"722","pt":"301"}               | 83447        |
+| Q6110020    | ["en","ja","pt"]            | {"en":"82730","ja":"310","pt":"229"}               | 83269        |
++-------------+-----------------------------+----------------------------------------------------+--------------+
+10 rows selected (1.783 seconds)
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> -- A8. TRANSFORM: the same kind of per-row  logic as a UDF, but as an external script
+0: jdbc:hive2://localhost:10000> -- (awk) that Hive streams rows through. S lower than a Java UDF, but needs no compiling.
+0: jdbc:hive2://localhost:10000> -- Map-only on purpose (no join, no groupi ng): the busiest English article-hours of the day.
+0: jdbc:hive2://localhost:10000> ADD FILE /workspace/hive/scripts/mobile_sh are.awk;
+INFO  : Added resources: [/workspace/hive/scripts/mobile_share.awk]
+No rows affected (0.023 seconds)
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> SELECT TRANSFORM (lang, page_title, views_ mobile, views)
+. . . . . . . . . . . . . . . .>        USING 'awk -f mobile_share.awk'
+. . . . . . . . . . . . . . . .>        AS (lang STRING, page_title STRING,  views BIGINT, mobile_pct DOUBLE, label STRING)
+. . . . . . . . . . . . . . . .> FROM hourly_views
+. . . . . . . . . . . . . . . .> WHERE dt = '${hivevar:day}' AND lang = 'en ' AND views >= 50000;
+INFO  : Compiling command(queryId=hive_20261024131504_e4c611bf-0ed4-4506-a6f0-ef42697a740f): SELECT TRANSFORM (lang, page_title, views_mobile, views)
+USING 'awk -f mobile_share.awk'
+AS (lang STRING, page_title STRING, views BIGINT, mobile_pct DOUBLE, label STRING)
+FROM hourly_views
+WHERE dt = '2024-06-03' AND lang = 'en' AND views >= 50000
+INFO  : Semantic Analysis Completed (retrial = false)
+INFO  : Created Hive schema: Schema(fieldSchemas:[FieldSchema(name:lang, type:string, comment:null), FieldSchema(name:page_title, type:string, comment:null), FieldSchema(name:views, type:bigint, comment:null), FieldSchema(name:mobile_pct, type:double, comment:null), FieldSchema(name:label, type:string, comment:null)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20261024131504_e4c611bf-0ed4-4506-a6f0-ef42697a740f); Time taken: 0.06 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20261024131504_e4c611bf-0ed4-4506-a6f0-ef42697a740f): SELECT TRANSFORM (lang, page_title, views_mobile, views)
+USING 'awk -f mobile_share.awk'
+AS (lang STRING, page_title STRING, views BIGINT, mobile_pct DOUBLE, label STRING)
+FROM hourly_views
+WHERE dt = '2024-06-03' AND lang = 'en' AND views >= 50000
+INFO  : Query ID = hive_20261024131504_e4c611bf-0ed4-4506-a6f0-ef42697a740f
+INFO  : Total jobs = 1
+INFO  : Launching Job 1 out of 1
+INFO  : Starting task [Stage-1:MAPRED] in serial mode
+INFO  : Subscribed to counters: [] for queryId: hive_20261024131504_e4c611bf-0ed4-4506-a6f0-ef42697a740f
+INFO  : Session is already open
+INFO  : Dag name: SELECT TRANSFORM (lan......ND views >= 50000 (Stage-1)
+INFO  : HS2 Host: [hiveserver2], Query ID: [hive_20261024131504_e4c611bf-0ed4-4506-a6f0-ef42697a740f], Dag ID: [dag_1792847680929_0001_7], DAG Session ID: [application_1792847680929_0001]
+INFO  : Status: Running (Executing on YARN cluster with App id application_1792847680929_0001)
+
+[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 ..         container       RUNNING      4          1        1        2       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/01  [======>>--------------------] 25%   ELAPSED TIME: 1.39 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[7A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 ..         container       RUNNING      4          1        1        2       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 00/01  [======>>--------------------] 25%   ELAPSED TIME: 1.90 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+[7A[2K----------------------------------------------------------------------------------------------
+[2K[36;1m        VERTICES      MODE        STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED  
+[22;0m[2K----------------------------------------------------------------------------------------------
+[2KMap 1 .......... container     SUCCEEDED      4          4        0        0       0       0  
+[2K----------------------------------------------------------------------------------------------
+[2K[31;1mVERTICES: 01/01  [==========================>>] 100%  ELAPSED TIME: 1.90 s     
+[22;0m[2K----------------------------------------------------------------------------------------------
+INFO  : Completed executing command(queryId=hive_20261024131504_e4c611bf-0ed4-4506-a6f0-ef42697a740f); Time taken: 2.015 seconds
++-------+--------------------+--------+-------------+---------------+
+| lang  |     page_title     | views  | mobile_pct  |     label     |
++-------+--------------------+--------+-------------+---------------+
+| en    | Claudia Sheinbaum  | 51060  | 79.7        | mixed         |
+| en    | Claudia Sheinbaum  | 58784  | 76.3        | mixed         |
+| en    | Claudia Sheinbaum  | 63182  | 73.7        | mixed         |
+| en    | Claudia Sheinbaum  | 67609  | 70.5        | mixed         |
+| en    | Claudia Sheinbaum  | 66949  | 69.1        | mixed         |
+| en    | Claudia Sheinbaum  | 60309  | 68.8        | mixed         |
+| en    | Claudia Sheinbaum  | 56290  | 69.2        | mixed         |
+| en    | Claudia Sheinbaum  | 52299  | 70.6        | mixed         |
+| en    | Dick Van Dyke      | 77805  | 88.2        | mobile-heavy  |
+| en    | Dick Van Dyke      | 51425  | 88.8        | mobile-heavy  |
++-------+--------------------+--------+-------------+---------------+
+10 rows selected (2.107 seconds)
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> -- A4 (biggest day-over-day jumps) joins 8  million rows per day. In Hive's local mode
+0: jdbc:hive2://localhost:10000> -- every task shares one 3 GB JVM, and the  join ran out of memory even with a map-join
+0: jdbc:hive2://localhost:10000> -- setup, so A4 runs in Spark instead: spa rk/jobs/day_over_day.py
+0: jdbc:hive2://localhost:10000> 
+0: jdbc:hive2://localhost:10000> [WARN] Failed to create directory: /home/hive/.beeline
+No such file or directory
+Closing: 0: jdbc:hive2://localhost:10000

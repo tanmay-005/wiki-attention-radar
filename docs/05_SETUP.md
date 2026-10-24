@@ -235,7 +235,7 @@ esac
 ```xml
 <configuration>
   <property><name>fs.defaultFS</name><value>hdfs://namenode:8020</value></property>
-  <property><name>hive.metastore.warehouse.dir</name><value>/radar/warehouse</value></property>
+  <property><name>hive.metastore.warehouse.dir</name><value>/radar/hive-managed</value></property>
   <property><name>hive.exec.dynamic.partition.mode</name><value>nonstrict</value></property>
   <property><name>hive.server2.enable.doAs</name><value>false</value></property>
 </configuration>

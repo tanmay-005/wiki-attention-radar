@@ -124,34 +124,30 @@ The options are flags so the benchmarks (B1, B2) reuse the same script. Every ru
 
 ## F4 · Hive layer (FR-8, FR-9)
 
-1. External tables over raw and staged data (`03_DATA_MODEL.md` §3); `MSCK REPAIR TABLE` after each load.
-2. **UDF build** (`hive/udf/build.sh`, run in `edge`):
-   ```bash
-   docker cp radar-hiveserver2-1:/opt/hive/lib ./hive-lib      # once, from the host
-   javac -cp "hive-lib/*:$(hadoop classpath)" -d out NormalizeTitle.java IsContentPage.java
-   jar cf radar-udf.jar -C out .
-   hdfs dfs -put -f radar-udf.jar /radar/lib/radar-udf.jar
-   ```
+**Engine.** HiveServer2 (`apache/hive:4.0.1`, embedded Derby metastore) runs queries with **Tez in local mode**, inside the `hiveserver2` container, reading and writing HDFS (`docker/hive/conf/hive-site.xml`). Hive 4 deprecates MapReduce as an engine, and Tez on YARN would need Tez installed on the cluster; YARN itself is already exercised by MR1–MR4 and later by Spark. The container gets a 3 GB heap (`SERVICE_OPTS=-Xmx3g`) because the queries run in that JVM.
+
+All HQL runs through `hive/run.sh` inside the container, which also sets default variables (`from`, `to`, `day`, `day2`):
+
+```
+docker compose exec hiveserver2 bash /workspace/hive/run.sh <file.hql> [--hivevar k=v ...]
+```
+
+1. **Raw tables** (`hive/01_raw_tables.hql`): database `radar` at `/radar/warehouse/radar.db`, `raw_hourly` (RegexSerDe, hour from `INPUT__FILE__NAME`), `raw_country_daily` (TSV), `MSCK REPAIR TABLE` to register the `dt=` folders.
+2. **UDFs** (`hive/udf/`): `TitleRules.java` (the rules), `NormalizeTitle.java` and `IsContentPage.java` (GenericUDF wrappers: `initialize`, `evaluate`, `getDisplayString`). `build.sh` (in edge) compiles them with `--release 8` (the Hive image runs Java 8, edge has Java 11) against Hive's own jars, copied once with `docker compose cp hiveserver2:/opt/hive/lib ../hive/udf/hive-lib`, and uploads `radar-udf.jar` to `/radar/lib/`. `register.hql` creates permanent functions:
    ```sql
    CREATE FUNCTION radar.normalize_title AS 'radar.udf.NormalizeTitle'
      USING JAR 'hdfs://namenode:8020/radar/lib/radar-udf.jar';
    CREATE FUNCTION radar.is_content_page AS 'radar.udf.IsContentPage'
      USING JAR 'hdfs://namenode:8020/radar/lib/radar-udf.jar';
    ```
-   The UDFs extend `org.apache.hadoop.hive.ql.udf.generic.GenericUDF`. Implement `initialize`, `evaluate` and `getDisplayString`.
-3. **Warehouse load:**
-   ```sql
-   SET hive.exec.dynamic.partition.mode=nonstrict;
-   INSERT OVERWRITE TABLE radar.hourly_views PARTITION (dt)
-   SELECT lang, page_title,
-          CAST(from_unixtime(unix_timestamp(hour_ts, "yyyy-MM-dd'T'HH")) AS TIMESTAMP),
-          SUM(IF(platform='desktop', views, 0)), SUM(IF(platform='mobile', views, 0)), SUM(views), dt
-   FROM radar.staged_hourly GROUP BY lang, page_title, hour_ts, dt;
-   ```
-4. **Python TRANSFORM alternative** (shown once in `03_analysis.hql` to contrast with Java UDFs):
-   `SELECT TRANSFORM(page_title) USING 'python3 normalize.py' AS (title) FROM ...`
+3. **Staged and warehouse tables** (`hive/02_warehouse.hql`): external tables over MR1/MR2/MR3 output and the external ORC warehouse tables (`03_DATA_MODEL.md` §3.3–3.4).
+4. **Warehouse load** (`spark/jobs/load_warehouse.py`, run in edge with `spark-submit --master local[3] --driver-memory 3g ... --dev|--full|--day D`). The first version was a Hive `INSERT OVERWRITE ... GROUP BY lang, page_title, hour_ts`, but in Tez local mode every task runs inside the single 3 GB HiveServer2 JVM: grouping one day (about 65 million hourly rows into about 50 million keys) filled the heap and stalled for over 20 minutes without finishing a task, with or without map-side aggregation. Spark spills sorts and aggregations to disk per task and loads the same day in a few minutes. The job writes ORC files straight into the table folders (`/radar/warehouse/radar.db/<table>/dt=<day>/`), sorted by `lang, page_title` so ORC min/max statistics can skip stripes; re-running `hive/02_warehouse.hql` (`MSCK REPAIR TABLE`) registers the partitions. `country_daily` is cleaned with the Python version of the title rules (`common_title.py`), which the parity test proves identical to the Java UDFs. Hive keeps the role it is good at: schema, metastore, UDFs and SQL over the columnar tables.
+5. **Analysis** (`hive/03_analysis.hql`): window functions, CTEs, joins, `ARRAY`/`MAP`, and one `TRANSFORM` through an awk script (`hive/scripts/mobile_share.awk`) to contrast an external script with a compiled UDF.
+6. **Metadata recovery**: the metastore lives inside the container, so if `hiveserver2` is recreated, `hive/rebuild_metadata.sh` re-runs the DDL and function registration. Because every table is external, no data has to be reloaded.
 
-**Check:** `SELECT radar.normalize_title('Virat_Kohli%27s_career')` returns `Virat Kohli's career`.
+**Check:** `SELECT radar.normalize_title('Virat_Kohli%27s_career')` returns `Virat Kohli's career`; `tests/dq/dq_hive.hql` (T-D2, load totals, T-D10) and `tests/dq/dq_spark.py` (T-D3, T-D4) pass for the dev day.
+
+**Lesson for the report:** Hive's local engine is fine for metadata and for queries that reduce data to a few groups (sums per language, per hour, per country), but not for grouping tens of millions of distinct keys inside one JVM. The heavy, many-key work (the load, T-D3/T-D4, the B3 copies) is done in Spark; Hive queries the result.
 
 ---
 

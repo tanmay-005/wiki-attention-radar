@@ -17,7 +17,7 @@ Tests live in `tests/` and run with `pytest` inside `edge` (`docker compose exec
 | ID | Function | Cases |
 |---|---|---|
 | T-U1 | `parse_domain(domain)` | `en` → (en, desktop); `en.m` → (en, mobile); `en.b`, `commons.m`, `en.wikt` → dropped; empty → dropped |
-| T-U2 | `normalize_title`, `is_content_page` | `Virat_Kohli` → `Virat Kohli`; `%27` decoded; `Special:Search` → false; `Main_Page` → false; `-` → false; title of 300 chars → truncated to 255; same output as the Hive UDF for the 20 shared fixtures |
+| T-U2 | `normalize_title`, `is_content_page` | `Virat_Kohli` → `Virat Kohli`; `%27` decoded; `Special:Search` → false; `Main_Page` → false; `-` → false; title of 300 chars → truncated to 255; same output as the Hive UDF: `tests/unit/test_udf_parity.py` runs Java `TitleRules` and Python `common_title` on every namespace name in several spellings, tricky percent-encodings and 3,000 random titles |
 | T-U3 | `spike_rule(views, median, sigma, cfg)` | Flat series → no spike; one 10× hour above min_views → spike; 10× on a tiny page below min_views → no spike; series with an old spike in the baseline → baseline not inflated (robust median); median 0 → floor applied, no division by zero |
 | T-U4 | `merge_episodes(hours)` | Consecutive hours → 1 episode; gap of 1 hour → same episode; gap of 3 hours → 2 episodes; peak hour = max views |
 | T-U5 | `categorise(item)` | 20 fixture items (saved Wikidata JSON) → expected categories; human + politician → Politics; unknown → Other |
@@ -63,8 +63,8 @@ The same checks, plus T-M2 to T-M5 and MR4, run with `bash tests/mr/test_combine
 |---|---|---|
 | T-D1 | Completeness | Every configured hour has a raw file; every dt has `_SUCCESS` after MR1/MR2 |
 | T-D2 | View conservation | Σ views by language in `staged_hourly` = Σ views in `raw_hourly` after the same filters (HQL using the UDFs) |
-| T-D3 | Daily = Σ hourly | For 1,000 random (lang, title, day): `daily_views.views` = Σ `hourly_views.views` |
-| T-D4 | No duplicates | `hourly_views` has unique (lang, title, hour_ts) |
+| T-D3 | Daily = Σ hourly | For every (lang, title) of the day: `daily_views.views` = Σ `hourly_views.views` (full check, not a sample; `tests/dq/dq_spark.py`) |
+| T-D4 | No duplicates | `hourly_views` has unique (lang, title, hour_ts) (`tests/dq/dq_spark.py`) |
 | T-D5 | Dense series | `series_global`: hours per key = expected; no nulls |
 | T-D6 | Spike sanity | All spikes satisfy the configured thresholds; no spike in the baseline-only period |
 | T-D7 | Enrichment coverage | ≥ 90% of spike keys have a QID; % "Other" category reported |

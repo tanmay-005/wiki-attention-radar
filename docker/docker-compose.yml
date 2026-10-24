@@ -91,6 +91,13 @@ services:
     environment:
       SERVICE_NAME: hiveserver2
       HIVE_CUSTOM_CONF_DIR: /hive_custom_conf
+      # Queries run inside this JVM (Tez local mode), so give it more than the 1 GB default
+      SERVICE_OPTS: "-Xmx3g"
+      # PID file on a tmpfs so it is wiped on restart; otherwise a restart finds the old
+      # file and stops with "HiveServer2 running as process 8. Stop it first."
+      HIVESERVER2_PID_DIR: /hs2-pid
+    tmpfs:
+      - /hs2-pid
     volumes:
       - ./hive/conf:/hive_custom_conf:ro
       - ..:/workspace

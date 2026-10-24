@@ -1,8 +1,44 @@
 <?xml version="1.0"?>
+<!--
+  HiveServer2 for the radar project (apache/hive:4.0.1, embedded Derby metastore).
+  This file replaces the image's own hive-site.xml, so the image defaults that matter
+  are repeated here.
+
+  Execution: Tez in local mode, the way the official image is set up. Queries run
+  inside the hiveserver2 container and read/write HDFS; they do not go to YARN.
+  (Hive 4 deprecates MapReduce as an engine, and Tez on YARN would need Tez installed
+  on the cluster.) MapReduce on YARN is already shown by the MR1-MR4 jobs.
+-->
 <configuration>
+  <!-- storage. Hive 4 refuses external tables inside the managed warehouse folder, and all
+       our tables are external under /radar/warehouse, so managed tables (unused) get their own. -->
   <property><name>fs.defaultFS</name><value>hdfs://namenode:8020</value></property>
-  <property><name>hive.metastore.warehouse.dir</name><value>/radar/warehouse</value></property>
+  <property><name>metastore.warehouse.dir</name><value>/radar/hive-managed</value></property>
+  <property><name>hive.metastore.warehouse.dir</name><value>/radar/hive-managed</value></property>
+  <property><name>metastore.warehouse.external.dir</name><value>/radar/warehouse</value></property>
+
+  <!-- execution: Tez local mode (image defaults) -->
+  <property><name>hive.execution.engine</name><value>tez</value></property>
+  <property><name>tez.local.mode</name><value>true</value></property>
+  <property><name>tez.runtime.optimize.local.fetch</name><value>true</value></property>
+  <property><name>mapreduce.framework.name</name><value>local</value></property>
+  <property><name>hive.exec.submit.local.task.via.child</name><value>false</value></property>
+  <property><name>hive.tez.exec.inplace.progress</name><value>false</value></property>
+
+  <!-- plain (non-ACID) tables everywhere: Spark reads the ORC files directly -->
+  <property><name>hive.support.concurrency</name><value>false</value></property>
+  <property><name>hive.txn.manager</name><value>org.apache.hadoop.hive.ql.lockmgr.DummyTxnManager</value></property>
+  <property><name>hive.create.as.acid</name><value>false</value></property>
+  <property><name>hive.create.as.insert.only</name><value>false</value></property>
+  <property><name>metastore.create.as.acid</name><value>false</value></property>
+
+  <!-- partitions -->
+  <property><name>hive.exec.dynamic.partition</name><value>true</value></property>
   <property><name>hive.exec.dynamic.partition.mode</name><value>nonstrict</value></property>
   <property><name>hive.exec.max.dynamic.partitions</name><value>2000</value></property>
+  <property><name>hive.msck.path.validation</name><value>ignore</value></property>
+
+  <!-- server -->
   <property><name>hive.server2.enable.doAs</name><value>false</value></property>
+  <property><name>metastore.metastore.event.db.notification.api.auth</name><value>false</value></property>
 </configuration>

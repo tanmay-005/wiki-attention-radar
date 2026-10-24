@@ -79,7 +79,11 @@ docker compose exec edge yarn application -list -appStates ALL
 | `ClassNotFoundException` for the UDF | Jar not found or wrong class name | `CREATE FUNCTION ... USING JAR 'hdfs://namenode:8020/radar/lib/radar-udf.jar'`; the class name must include the package |
 | UDF compile errors | Missing jars on the classpath | Compile against `/opt/hive/lib/*` copied from the Hive container plus `$(hadoop classpath)` |
 | Dynamic partition insert fails | Strict mode or too many partitions | `SET hive.exec.dynamic.partition.mode=nonstrict; SET hive.exec.max.dynamic.partitions=2000;` |
-| Metastore lost after container recreate | Embedded Derby metastore inside the container | Re-run the DDL scripts (they are idempotent), or mount a volume for the metastore directory |
+| Metastore lost after container recreate (`Table not found`, `Invalid function`) | Embedded Derby metastore lives inside the container | `docker compose exec hiveserver2 bash /workspace/hive/rebuild_metadata.sh`. All tables are external, so no data is reloaded |
+| `UnsupportedClassVersionError` when calling a UDF | Jar built for Java 11 but Hive runs Java 8 | Build with `hive/udf/build.sh` (uses `--release 8`), re-upload, then restart hiveserver2 or re-run `register.hql` |
+| `An external table's location should not be located within managed warehouse root directory` | Hive 4 keeps external tables out of the managed warehouse folder | `metastore.warehouse.dir` points to `/radar/hive-managed` (unused); the external tables live under `/radar/warehouse` |
+| hiveserver2 exits after `docker compose restart` with `HiveServer2 running as process 8. Stop it first.` | Old PID file survives the restart and the new process gets the same PID | PID file lives on a tmpfs (`HIVESERVER2_PID_DIR=/hs2-pid` in compose), which is emptied on every restart |
+| Hive query stuck at `VERTICES: 00/05 ... 0%` for many minutes, hiveserver2 at ~400% CPU and ~3.5 GB | Tez local mode runs every task inside the 3 GB HiveServer2 JVM; grouping tens of millions of keys fills the heap and the JVM spends its time in garbage collection | Ctrl+C, `docker compose restart hiveserver2`. Do many-key work in Spark (`spark/jobs/load_warehouse.py`, `tests/dq/dq_spark.py`); keep Hive queries to few-group aggregations or filter first |
 | Beeline cannot connect | HiveServer2 still starting (it takes a while) | Wait; check `docker compose logs hiveserver2`; UI at http://localhost:10002 |
 
 ## 5. Spark
