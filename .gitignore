@@ -31,3 +31,4 @@ benchmarks/results/*.log
 .idea/
 Thumbs.db
 .DS_Store
+data/exports/

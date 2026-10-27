@@ -1,0 +1,472 @@
+
+== 1. documents per collection
+{
+  events: 16822,
+  pages: 16804,
+  wikidata_cache: 26608,
+  meta: {
+    _id: 'serving',
+    pipeline_run: ISODate('2026-10-27T20:32:48.000Z'),
+    as_of: '2024-06-14',
+    detect_start: '2024-06-01',
+    data_start: '2024-05-25',
+    categories: [
+      'Business',
+      'Disasters',
+      'Entertainment',
+      'Other',
+      'Politics',
+      'Science & Tech',
+      'Sports'
+    ],
+    events: 16822
+  }
+}
+
+== 2. the top global event (curve, articles and countries shortened to 3 entries)
+{
+  _id: 'evt_20240607_Q85518537_2',
+  title: 'Carlos Alcaraz',
+  category: 'Sports',
+  first_detected: ISODate('2024-06-07T00:00:00.000Z'),
+  peak_time: ISODate('2024-06-09T18:00:00.000Z'),
+  day: ISODate('2024-06-09T00:00:00.000Z'),
+  score: 523.8957666282129,
+  ratio: 100,
+  peak_views: 174182,
+  baseline_views: 828.5,
+  langs: [
+    'en',
+    'ja',
+    'pt'
+  ],
+  location: {
+    country: 'ES',
+    country_name: 'Spain',
+    region: null,
+    region_name: null,
+    city_qid: null,
+    city_name: null,
+    source: 'wikidata'
+  },
+  articles: [
+    {
+      qid: 'Q85518537',
+      lang: 'en',
+      title: 'Carlos Alcaraz',
+      peak_views: 174182,
+      ratio: 210.23777911888956,
+      role: 'lead'
+    },
+    {
+      qid: 'Q85518537',
+      lang: 'pt',
+      title: 'Carlos Alcaraz',
+      peak_views: 10659,
+      ratio: 355.3,
+      role: 'member'
+    },
+    {
+      qid: 'Q85518537',
+      lang: 'ja',
+      title: 'カルロス・アルカラス',
+      peak_views: 990,
+      ratio: 46.04651162790697,
+      role: 'member'
+    }
+  ],
+  countries: [
+    {
+      code: 'US',
+      ratio: 38.8141417009797,
+      peak_views: 136684,
+      day: ISODate('2024-06-09T00:00:00.000Z'),
+      name: 'United States'
+    },
+    {
+      code: 'GB',
+      ratio: 25.775053053525113,
+      peak_views: 54656,
+      day: ISODate('2024-06-09T00:00:00.000Z'),
+      name: 'United Kingdom'
+    },
+    {
+      code: 'IN',
+      ratio: 24.322295805739515,
+      peak_views: 22036,
+      day: ISODate('2024-06-09T00:00:00.000Z'),
+      name: 'India'
+    }
+  ],
+  curve: [
+    {
+      t: ISODate('2024-06-07T18:00:00.000Z'),
+      v: 13661,
+      b: 828.5
+    },
+    {
+      t: ISODate('2024-06-07T19:00:00.000Z'),
+      v: 7362,
+      b: 828.5
+    },
+    {
+      t: ISODate('2024-06-07T20:00:00.000Z'),
+      v: 6467,
+      b: 828.5
+    }
+  ],
+  scopes: [
+    'G',
+    'R:AE',
+    'R:AT',
+    'R:AU',
+    'R:BE',
+    'R:BG',
+    'R:BR',
+    'R:CA',
+    'R:CH',
+    'R:DE',
+    'R:DK',
+    'R:ES',
+    'R:FR',
+    'R:GB',
+    'R:GR',
+    'R:HR',
+    'R:ID',
+    'R:IE',
+    'R:IL',
+    'R:IN',
+    'R:IT',
+    'R:JP',
+    'R:MK',
+    'R:MY',
+    'R:NO',
+    'R:NZ',
+    'R:PH',
+    'R:PL',
+    'R:PT',
+    'R:RO',
+    'R:RS',
+    'R:SE',
+    'R:SG',
+    'R:SI',
+    'R:TH',
+    'R:US',
+    'R:ZA',
+    'A:ES'
+  ],
+  suspicious: false,
+  members: 39,
+  lead: {
+    lang: 'en',
+    title: 'Carlos Alcaraz'
+  },
+  pipeline_run: ISODate('2026-10-27T20:32:48.000Z')
+}
+
+== 3. top 5 events read by people in India
+[
+  {
+    title: 'Carlos Alcaraz',
+    category: 'Sports',
+    score: 523.8957666282129,
+    ratio: 100
+  },
+  {
+    title: 'Mohan Charan Majhi',
+    category: 'Politics',
+    score: 514.7534112018842,
+    ratio: 100
+  },
+  {
+    title: 'list of National Democratic Alliance members',
+    category: 'Other',
+    score: 514.3478529065793,
+    ratio: 100
+  },
+  {
+    title: 'Carlo Ancelotti',
+    category: 'Sports',
+    score: 505.073346743692,
+    ratio: 100
+  },
+  {
+    title: 'Jerry West',
+    category: 'Sports',
+    score: 503.8862472778642,
+    ratio: 100
+  }
+]
+
+== 4. how query 3 runs (index on {scopes: 1, score: -1})
+{
+  input_stage: 'IXSCAN',
+  index: 'scopes_1_score_-1',
+  docs_examined: 5,
+  docs_returned: 5,
+  ms: 0
+}
+
+== 5. events about a region (location.region = IN-RJ, Rajasthan)
+[
+  {
+    title: 'Barmer Lok Sabha constituency',
+    category: 'Politics',
+    location: {
+      region_name: 'Rajasthan',
+      city_name: null
+    }
+  },
+  {
+    title: 'Jaipur Rural Lok Sabha constituency',
+    category: 'Politics',
+    location: {
+      region_name: 'Rajasthan',
+      city_name: null
+    }
+  },
+  {
+    title: 'Jodhpur Lok Sabha constituency',
+    category: 'Politics',
+    location: {
+      region_name: 'Rajasthan',
+      city_name: null
+    }
+  },
+  {
+    title: 'Todgarh',
+    category: 'Other',
+    location: {
+      region_name: 'Rajasthan',
+      city_name: null
+    }
+  },
+  {
+    title: 'Kota Lok Sabha constituency',
+    category: 'Politics',
+    location: {
+      region_name: 'Rajasthan',
+      city_name: null
+    }
+  }
+]
+
+== 6. events that contain a given Wikidata item in their articles (Q85518537, Carlos Alcaraz)
+[
+  {
+    _id: 'evt_20240602_Q85518537',
+    title: 'Carlos Alcaraz'
+  },
+  {
+    _id: 'evt_20240604_Q85518537',
+    title: 'Carlos Alcaraz'
+  },
+  {
+    _id: 'evt_20240607_Q85518537',
+    title: 'Carlos Alcaraz'
+  },
+  {
+    _id: 'evt_20240607_Q85518537_2',
+    title: 'Carlos Alcaraz'
+  }
+]
+
+== 7. aggregation: events, average jump and best score per category
+[
+  {
+    _id: 'Other',
+    events: 5315,
+    avg_ratio: 30.4,
+    best: 514
+  },
+  {
+    _id: 'Entertainment',
+    events: 4776,
+    avg_ratio: 33.6,
+    best: 489
+  },
+  {
+    _id: 'Sports',
+    events: 3737,
+    avg_ratio: 35.7,
+    best: 524
+  },
+  {
+    _id: 'Politics',
+    events: 1967,
+    avg_ratio: 29.2,
+    best: 515
+  },
+  {
+    _id: 'Business',
+    events: 550,
+    avg_ratio: 33.3,
+    best: 469
+  },
+  {
+    _id: 'Science & Tech',
+    events: 314,
+    avg_ratio: 32,
+    best: 466
+  },
+  {
+    _id: 'Disasters',
+    events: 163,
+    avg_ratio: 39.6,
+    best: 506
+  }
+]
+
+== 8. aggregation with $unwind: countries with the most spiking events
+[
+  {
+    _id: {
+      code: 'US',
+      name: 'United States'
+    },
+    events: 4849
+  },
+  {
+    _id: {
+      code: 'JP',
+      name: 'Japan'
+    },
+    events: 2982
+  },
+  {
+    _id: {
+      code: 'GB',
+      name: 'United Kingdom'
+    },
+    events: 2499
+  },
+  {
+    _id: {
+      code: 'IN',
+      name: 'India'
+    },
+    events: 2279
+  },
+  {
+    _id: {
+      code: 'AU',
+      name: 'Australia'
+    },
+    events: 737
+  },
+  {
+    _id: {
+      code: 'CA',
+      name: 'Canada'
+    },
+    events: 725
+  },
+  {
+    _id: {
+      code: 'BR',
+      name: 'Brazil'
+    },
+    events: 437
+  },
+  {
+    _id: {
+      code: 'DE',
+      name: 'Germany'
+    },
+    events: 251
+  },
+  {
+    _id: {
+      code: 'RU',
+      name: 'Russia'
+    },
+    events: 182
+  },
+  {
+    _id: {
+      code: 'IE',
+      name: 'Ireland'
+    },
+    events: 153
+  }
+]
+
+== 9. BSON types stored in one document
+[
+  {
+    _id_type: 'string',
+    first_detected: 'date',
+    score: 'double',
+    peak_views: 'int',
+    langs: 'array',
+    location: 'object',
+    suspicious: 'bool',
+    members: 'int'
+  }
+]
+
+== 10a. insertOne
+{
+  acknowledged: true,
+  insertedId: 'evt_demo_1'
+}
+
+== 10b. find
+{
+  _id: 'evt_demo_1',
+  title: 'Demo event',
+  category: 'Other',
+  first_detected: ISODate('2024-06-04T03:00:00.000Z'),
+  score: 123.4,
+  ratio: 12.5,
+  peak_views: Long('5000'),
+  langs: [
+    'en'
+  ],
+  location: {
+    country: 'IN',
+    region: 'IN-RJ'
+  },
+  scopes: [
+    'DEMO'
+  ],
+  suspicious: false
+}
+
+== 10c. updateOne ($set, $push, $inc)
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1,
+  modifiedCount: 1,
+  upsertedCount: 0
+}
+
+== 10d. find after the update
+{
+  _id: 'evt_demo_1',
+  title: 'Demo event (edited)',
+  score: 133.4,
+  langs: [
+    'en',
+    'hi'
+  ]
+}
+
+== 10e. deleteOne
+{
+  acknowledged: true,
+  deletedCount: 1
+}
+
+== 10f. count after the delete
+0
+
+== 11. indexes on events
+[
+  '_id_',
+  'category_1_first_detected_-1',
+  'location.country_1_location.region_1',
+  'articles.qid_1',
+  'scopes_1_score_-1'
+]

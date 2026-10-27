@@ -1,0 +1,263 @@
+
+ event_id                | title                                            | score     | ratio | langs                    | place
+-------------------------+--------------------------------------------------+-----------+-------+--------------------------+-------
+  evt_20240604_Q21051788 |     list of National Democratic Alliance members | 514.34785 |   100 |             {'en', 'hi'} |  null
+  evt_20240603_Q28164181 |                     2019 Indian general election | 500.47318 |   100 |       {'en', 'hi', 'ta'} | India
+ evt_20240604_Q120739928 | Indian National Developmental Inclusive Alliance | 489.55248 |   100 | {'en', 'hi', 'ja', 'ta'} | India
+  evt_20240604_Q65042773 |                     2024 Indian general election | 488.10735 |   100 |       {'en', 'hi', 'ta'} | India
+    evt_20240604_Q129815 |                     National Democratic Alliance | 485.67077 |   100 | {'en', 'hi', 'ja', 'ta'} | India
+
+(5 rows)
+
+ event_id               | title                        | score     | ratio
+------------------------+------------------------------+-----------+-------
+ evt_20240603_Q28164181 | 2019 Indian general election | 500.47318 |   100
+ evt_20240604_Q65042773 | 2024 Indian general election | 488.10735 |   100
+  evt_20240604_Q3518013 |       Nara Chandrababu Naidu | 442.50367 |   100
+  evt_20240604_Q1546941 |              Samajwadi Party | 435.76967 |   100
+   evt_20240604_Q904827 |          Janata Dal (United) | 430.45444 |   100
+
+(5 rows)
+
+ title            | score
+------------------+-----------
+   Carlos Alcaraz | 523.89577
+ Alexander Zverev | 495.25212
+    Jack Nicklaus | 471.64499
+
+(3 rows)
+
+ scope | day        | category | score | event_id   | first_seen                      | langs        | lead_qid | peak_views | place         | ratio | sparkline        | suspicious | title
+-------+------------+----------+-------+------------+---------------------------------+--------------+----------+------------+---------------+-------+------------------+------------+------------
+  DEMO | 2024-06-04 |      ALL | 123.4 | evt_demo_1 | 2024-06-04 03:00:00.000000+0000 | {'en', 'hi'} |     null |       5000 | Jaipur, India |  12.5 | [1, 2, 3, 40, 5] |      False | Demo event
+
+(1 rows)
+
+ title               | langs              | sparkline           | writetime(title)
+---------------------+--------------------+---------------------+------------------
+ Demo event (edited) | {'en', 'hi', 'ta'} | [1, 2, 3, 40, 5, 6] | 1793133251162044
+
+(1 rows)
+
+ count
+-------
+     0
+
+(1 rows)
+
+ event_id     | title                 | ttl(title)
+--------------+-----------------------+------------
+ evt_demo_ttl | Expires in 60 seconds |         60
+
+(1 rows)
+
+ event_id               | title             | ttl(title)
+------------------------+-------------------+------------
+ evt_20240614_Q96072055 |     Jamal Musiala |     172731
+     evt_20240614_Q4457 | Franz Beckenbauer |     172731
+   evt_20240614_Q326159 |   Niclas Füllkrug |     172731
+
+(3 rows)
+
+ scope | day        | category       | spikes
+-------+------------+----------------+--------
+     G | 2024-06-04 |            ALL |    804
+     G | 2024-06-04 |       Business |     13
+     G | 2024-06-04 |      Disasters |      1
+     G | 2024-06-04 |  Entertainment |    173
+     G | 2024-06-04 |          Other |    197
+     G | 2024-06-04 |       Politics |    298
+     G | 2024-06-04 | Science & Tech |      9
+     G | 2024-06-04 |         Sports |    113
+
+(8 rows)
+
+ scope | day        | category | spikes
+-------+------------+----------+--------
+  DEMO | 2024-06-04 |   Sports |      3
+
+(1 rows)
+
+ country | region_code | event_count | region_name
+---------+-------------+-------------+-------------------------------------
+      IN |       IN-AN |           1 |         Andaman and Nicobar Islands
+      IN |       IN-AP |          85 |                      Andhra Pradesh
+      IN |       IN-AR |           2 |                   Arunachal Pradesh
+      IN |       IN-AS |          10 |                               Assam
+      IN |       IN-BR |          34 |                               Bihar
+      IN |       IN-CT |           3 |                        Chhattisgarh
+      IN |       IN-DD |           1 |                       Daman and Diu
+      IN |       IN-DL |          40 | National Capital Territory of Delhi
+      IN |       IN-GA |           1 |                                 Goa
+      IN |       IN-GJ |          13 |                             Gujarat
+      IN |       IN-HP |           2 |                    Himachal Pradesh
+      IN |       IN-HR |           9 |                             Haryana
+      IN |       IN-JH |           9 |                           Jharkhand
+      IN |       IN-JK |           5 |                   Jammu and Kashmir
+      IN |       IN-KA |          33 |                           Karnataka
+      IN |       IN-KL |          30 |                              Kerala
+      IN |       IN-MH |          71 |                         Maharashtra
+      IN |       IN-ML |           2 |                           Meghalaya
+      IN |       IN-MN |           2 |                             Manipur
+      IN |       IN-MP |          17 |                      Madhya Pradesh
+      IN |       IN-OR |          91 |                              Odisha
+      IN |       IN-PB |           4 |                              Punjab
+      IN |       IN-PY |           2 |                          Puducherry
+      IN |       IN-RJ |          23 |                           Rajasthan
+      IN |       IN-SK |           4 |                              Sikkim
+      IN |       IN-TG |           9 |                           Telangana
+      IN |       IN-TN |          47 |                          Tamil Nadu
+      IN |       IN-UP |          90 |                       Uttar Pradesh
+      IN |       IN-UT |           2 |                         Uttarakhand
+      IN |       IN-WB |          20 |                         West Bengal
+
+(30 rows)
+
+ hour                            | views  | baseline
+---------------------------------+--------+----------
+ 2024-06-09 12:00:00.000000+0000 |   2756 |      828
+ 2024-06-09 13:00:00.000000+0000 |   7040 |      828
+ 2024-06-09 14:00:00.000000+0000 |  34600 |      828
+ 2024-06-09 15:00:00.000000+0000 |  29880 |      828
+ 2024-06-09 16:00:00.000000+0000 |  35933 |      828
+ 2024-06-09 17:00:00.000000+0000 |  40108 |      828
+ 2024-06-09 18:00:00.000000+0000 | 174182 |      828
+ 2024-06-09 19:00:00.000000+0000 |  40503 |      828
+ 2024-06-09 20:00:00.000000+0000 |  23691 |      828
+ 2024-06-09 21:00:00.000000+0000 |  20097 |      828
+ 2024-06-09 22:00:00.000000+0000 |  16991 |      828
+
+(11 rows)
+
+ qid       | country | day        | baseline | views
+-----------+---------+------------+----------+-------
+ Q27928600 |      GB | 2024-05-15 |     null |     0
+ Q27928600 |      GB | 2024-05-16 |     null |     0
+ Q27928600 |      GB | 2024-05-17 |     null |     0
+ Q27928600 |      GB | 2024-05-18 |     null |     0
+ Q27928600 |      GB | 2024-05-19 |     null |    91
+
+(5 rows)
+/workspace/scripts/crud_demo_cassandra.cql:58:InvalidRequest: Error from server: code=2200 [Invalid query] message="Column with name 'lead_qid' already exists"
+
+ event_id               | title                                        | lead_qid
+------------------------+----------------------------------------------+----------
+ evt_20240604_Q21051788 | list of National Democratic Alliance members |     null
+ evt_20240603_Q28164181 |                 2019 Indian general election |     null
+
+(2 rows)
+
+CREATE TABLE radar.event_rank (
+    scope text,
+    day date,
+    category text,
+    score double,
+    event_id text,
+    first_seen timestamp,
+    lead_qid text,
+    peak_views bigint,
+    place text,
+    ratio double,
+    suspicious boolean,
+    title text,
+    langs set<text>,
+    sparkline list<int>,
+    PRIMARY KEY ((scope, day), category, score, event_id)
+) WITH CLUSTERING ORDER BY (category ASC, score DESC, event_id ASC)
+    AND additional_write_policy = '99p'
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+    AND cdc = false
+    AND comment = ''
+    AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+    AND compression = {'chunk_length_in_kb': '16', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'}
+    AND memtable = 'default'
+    AND crc_check_chance = 1.0
+    AND default_time_to_live = 0
+    AND extensions = {}
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair = 'BLOCKING'
+    AND speculative_retry = '99p';
+
+ keyspace_name | replication
+---------------+-------------------------------------------------------------------------------------
+         radar | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+
+(1 rows)
+
+ table_name             | default_time_to_live
+------------------------+----------------------
+  article_country_daily |                    0
+         article_hourly |                    0
+             event_rank |                    0
+ event_rank_import_demo |                    0
+           region_index |                    0
+           spike_counts |                    0
+           trending_now |               172800
+
+(7 rows)
+
+ column_name | kind          | position | type
+-------------+---------------+----------+-----------
+    category |    clustering |        0 |      text
+         day | partition_key |        1 |      date
+    event_id |    clustering |        2 |      text
+  first_seen |       regular |       -1 | timestamp
+       langs |       regular |       -1 | set<text>
+    lead_qid |       regular |       -1 |      text
+  peak_views |       regular |       -1 |    bigint
+       place |       regular |       -1 |      text
+       ratio |       regular |       -1 |    double
+       scope | partition_key |        0 |      text
+       score |    clustering |        1 |    double
+   sparkline |       regular |       -1 | list<int>
+  suspicious |       regular |       -1 |   boolean
+       title |       regular |       -1 |      text
+
+(14 rows)
+
+ cluster_name | release_version | data_center | rack
+--------------+-----------------+-------------+-------
+        radar |          4.1.12 | datacenter1 | rack1
+
+(1 rows)
+
+== table sizes (nodetool flush, then tablestats)
+		Table: article_country_daily
+		SSTable count: 3
+		Old SSTable count: 0
+		Space used (live): 4794259
+		Number of partitions (estimate): 16406
+		Table: article_hourly
+		SSTable count: 2
+		Old SSTable count: 0
+		Space used (live): 43217927
+		Number of partitions (estimate): 8965
+		Table: event_rank
+		SSTable count: 2
+		Old SSTable count: 0
+		Space used (live): 11973361
+		Number of partitions (estimate): 2538
+		Table: event_rank_import_demo
+		SSTable count: 1
+		Old SSTable count: 0
+		Space used (live): 10851959
+		Number of partitions (estimate): 2537
+		Table: region_index
+		SSTable count: 1
+		Old SSTable count: 0
+		Space used (live): 16639
+		Number of partitions (estimate): 90
+		Table: spike_counts
+		SSTable count: 1
+		Old SSTable count: 0
+		Space used (live): 207111
+		Number of partitions (estimate): 2361
+		Table: trending_now
+		SSTable count: 1
+		Old SSTable count: 0
+		Space used (live): 35555
+		Number of partitions (estimate): 163

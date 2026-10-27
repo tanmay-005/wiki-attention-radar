@@ -1,0 +1,13 @@
+
+== mongoexport: events read by people in India -> JSON
+2026-10-27T20:35:36.971+0000	connected to: mongodb://localhost/
+2026-10-27T20:35:37.971+0000	radar.events  0
+2026-10-27T20:35:38.103+0000	radar.events  2201
+2026-10-27T20:35:38.103+0000	exported 2201 records
+== mongoimport: the JSON -> radar.events_import_demo
+2026-10-27T20:35:38.117+0000	connected to: mongodb://localhost/
+2026-10-27T20:35:38.117+0000	dropping: `radar.events_import_demo`
+2026-10-27T20:35:38.406+0000	2201 document(s) imported successfully. 0 document(s) failed to import.
+source documents (scopes R:IN): 2201
+imported documents:             2201
+types kept after the round trip: first_detected object (Date), peak_views Number

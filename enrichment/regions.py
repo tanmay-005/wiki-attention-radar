@@ -9,16 +9,26 @@
 """
 from __future__ import annotations
 
+import re
+
 from typing import Callable
 
 MAX_HOPS = 5
+
+
+ISO_REGION = re.compile(r"^[A-Z]{2}-[A-Z0-9]{1,3}$")
+
+
+def is_iso_region(code: str | None) -> bool:
+    """True for ISO 3166-2 codes like 'IN-RJ'; Wikidata also holds a few other formats ('IN.AP.EG')."""
+    return bool(code and ISO_REGION.match(code))
 
 
 def resolve(item: dict, get: Callable[[list[str]], dict[str, dict]], city_classes: set[str]) -> dict:
     out = {"region_code": None, "region_name": None, "city_qid": None, "country": None}
 
     starts = list(item.get("located_in") or []) + list(item.get("location") or []) + list(item.get("headquarters") or [])
-    if item.get("iso3166_2"):                       # the item itself is a state / region
+    if is_iso_region(item.get("iso3166_2")):         # the item itself is a state / region
         out["region_code"], out["region_name"] = item["iso3166_2"], item.get("label")
     elif starts:
         first = get(starts)
@@ -30,7 +40,7 @@ def resolve(item: dict, get: Callable[[list[str]], dict[str, dict]], city_classe
         for _ in range(MAX_HOPS):
             recs = get([q for q in frontier if q not in seen])
             seen.update(frontier)
-            hit = next((recs[q] for q in frontier if q in recs and recs[q].get("iso3166_2")), None)
+            hit = next((recs[q] for q in frontier if q in recs and is_iso_region(recs[q].get("iso3166_2"))), None)
             if hit:
                 out["region_code"], out["region_name"] = hit["iso3166_2"], hit.get("label")
                 break

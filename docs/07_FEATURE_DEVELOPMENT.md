@@ -345,13 +345,15 @@ Very generic link targets (countries, Q5 "human", languages, years) are excluded
 
 | Target | Method | Notes |
 |---|---|---|
-| `article_hourly` | Spark Cassandra connector `df.write.format("org.apache.spark.sql.cassandra")` | Only for lead + member articles of events (±7 days around the peak) |
-| `article_country_daily` | Spark Cassandra connector | Only for (qid, country) pairs in events |
+| `article_hourly` | Spark Cassandra connector `df.write.format("org.apache.spark.sql.cassandra")` | Every global article that is part of an event, all 504 hours; baseline = median of the previous 168 hours, recomputed per day as in S2 |
+| `article_country_daily` | Spark Cassandra connector | Every (qid, country) pair with a country spike, all 31 days (missing days = 0); baseline = median of the previous 14 days |
 | `event_rank` | Python driver, prepared `INSERT`, two rows per event per scope (`ALL` + its category), `day` = first_detected day; one row per day the event is active, for 7d/30d windows | |
 | `trending_now` | Python driver, `INSERT ... USING TTL` | Last detection day's top 20 per scope |
 | `spike_counts` | Python driver, `UPDATE ... SET spikes = spikes + 1` | Counters cannot be set with INSERT |
 | `region_index` | Python driver | From events with `A:<CC>:<REGION>` scopes |
 | Mongo `events` | `pymongo` `bulk_write` of `ReplaceOne(upsert=True)` | Idempotent re-runs |
+
+`scripts/run_s6.sh` wraps the command below (connector jars cached in `/data/raw-cache/ivy2`, nulls not written so they create no tombstones). `--skip-series` reloads only the events; `--dry-run` writes nothing.
 
 Spark submit with the connector:
 

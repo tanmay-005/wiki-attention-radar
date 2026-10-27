@@ -1,0 +1,18 @@
+Using 3 child processes
+
+Starting copy of radar.event_rank with columns [scope, day, category, score, event_id, title, ratio, peak_views, first_seen, langs, place, sparkline, suspicious].
+Processed: 5000 rows; Rate:   17142 rows/s; Avg. rate:   17141 rows/sProcessed: 16586 rows; Rate:   31266 rows/s; Avg. rate:   30325 rows/sProcessed: 28120 rows; Rate:   36835 rows/s; Avg. rate:   34337 rows/sProcessed: 38700 rows; Rate:   39343 rows/s; Avg. rate:   36109 rows/sProcessed: 51684 rows; Rate:   43942 rows/s; Avg. rate:   38592 rows/sProcessed: 63988 rows; Rate:   44353 rows/s; Avg. rate:   39643 rows/sProcessed: 74334 rows; Rate:   42640 rows/s; Avg. rate:   39817 rows/sProcessed: 83136 rows; Rate:   37304 rows/s; Avg. rate:   38808 rows/sProcessed: 89660 rows; Rate:   34839 rows/s; Avg. rate:   38255 rows/s
+89660 rows exported to 1 files in 0 day, 0 hour, 0 minute, and 2.352 seconds.
+Using 3 child processes
+
+Starting copy of radar.event_rank_import_demo with columns [scope, day, category, score, event_id, title, ratio, peak_views, first_seen, langs, place, sparkline, suspicious].
+Processed: 5000 rows; Rate:   11845 rows/s; Avg. rate:   11844 rows/sProcessed: 10000 rows; Rate:   13521 rows/s; Avg. rate:   13313 rows/sProcessed: 25000 rows; Rate:   29460 rows/s; Avg. rate:   23115 rows/sProcessed: 35000 rows; Rate:   32547 rows/s; Avg. rate:   25694 rows/sProcessed: 45000 rows; Rate:   30504 rows/s; Avg. rate:   26262 rows/sProcessed: 55000 rows; Rate:   31558 rows/s; Avg. rate:   27225 rows/sProcessed: 60000 rows; Rate:   24284 rows/s; Avg. rate:   25928 rows/sProcessed: 65000 rows; Rate:   20678 rows/s; Avg. rate:   24933 rows/sProcessed: 70000 rows; Rate:   10390 rows/s; Avg. rate:    1357 rows/sProcessed: 89660 rows; Rate:   36364 rows/s; Avg. rate:    1728 rows/sProcessed: 89660 rows; Rate:   18182 rows/s; Avg. rate:    1725 rows/s
+89660 rows imported from 1 files in 0 day, 0 hour, 0 minute, and 51.991 seconds (0 skipped).
+
+ event_id                | title                                            | score     | langs                    | sparkline
+-------------------------+--------------------------------------------------+-----------+--------------------------+---------------------------------------------------------------------------------
+  evt_20240604_Q21051788 |     list of National Democratic Alliance members | 514.34785 |             {'en', 'hi'} | [2570, 1217, 1680, 1812, 2109, 126264, 139541, 29504, 36641, 18709, 5364, 8018]
+  evt_20240603_Q28164181 |                     2019 Indian general election | 500.47318 |       {'en', 'hi', 'ta'} |  [5344, 5354, 4116, 6316, 6919, 87079, 103397, 66072, 19278, 15251, 9530, 4929]
+ evt_20240604_Q120739928 | Indian National Developmental Inclusive Alliance | 489.55248 | {'en', 'hi', 'ja', 'ta'} |   [2402, 1967, 1580, 1737, 2179, 68255, 79211, 35230, 15273, 11915, 8479, 4014]
+
+(3 rows)
