@@ -18,13 +18,21 @@ spikes:
   global_hourly:
     baseline_hours: 168
     min_views: 1000
-    min_ratio: 4.0
+    min_ratio: 10.0
+    min_hours: 2
     min_z: 5.0
     baseline_floor: 50
+    # Smaller Wikipedias get lower absolute floors (en has about 10M views an hour,
+    # ja about 1M, pt 0.5M, hi 50k, ta 14k). Values here override the ones above.
+    per_lang:
+      ja: {min_views: 200, baseline_floor: 20}
+      pt: {min_views: 100, baseline_floor: 10}
+      hi: {min_views: 40, baseline_floor: 5}
+      ta: {min_views: 15, baseline_floor: 3}
   country_daily:
     baseline_days: 14
-    min_views: 500
-    min_ratio: 3.0
+    min_views: 1000
+    min_ratio: 10.0
     min_z: 4.0
     baseline_floor: 90
   ratio_cap: 100
@@ -50,7 +58,7 @@ wikimedia:
   hourly_url: "https://dumps.wikimedia.org/other/pageviews/{y}/{y}-{m:02d}/pageviews-{y}{m:02d}{d:02d}-{h:02d}0000.gz"
   country_url: "https://analytics.wikimedia.org/published/datasets/country_project_page/{y}-{m:02d}-{d:02d}.tsv"
   # Wikimedia requires a descriptive User-Agent with contact details. Replace the email.
-  user_agent: "WikiAttentionRadar/0.1 (student project; contact: YOUR_EMAIL_HERE)"
+  user_agent: "WikiAttentionRadar/0.1 (student project; contact: tanmayrana2005@gmail.com)"
   max_parallel_downloads: 2
   wikidata_api: "https://www.wikidata.org/w/api.php"
   wikidata_sparql: "https://query.wikidata.org/sparql"

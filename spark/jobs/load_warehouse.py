@@ -135,6 +135,8 @@ def main() -> None:
     g.add_argument("--day", action="append", help="one day (YYYY-MM-DD); repeat for more")
     ap.add_argument("--only", choices=["hourly", "daily", "country"], action="append",
                     help="load only these tables (default: all three)")
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="leave a day alone if its ORC folder already has a _SUCCESS file")
     a = ap.parse_args()
 
     cfg = load()
@@ -149,13 +151,21 @@ def main() -> None:
     spark.sparkContext.setLogLevel("WARN")
     spark.sparkContext.addPyFile(str(ROOT / "mapreduce" / "common_title.py"))
     t_all = time.time()
+    wh = f"{cfg['paths']['warehouse']}/radar.db"
+
+    def todo(table: str, day: str) -> bool:
+        if a.skip_existing and exists(spark, f"{wh}/{table}/dt={day}/_SUCCESS"):
+            print(f"  {table:<14} already loaded, skipped")
+            return False
+        return True
+
     for day in sorted(set(hdays) | set(cdays)):
         print(f"== {day}", flush=True)
-        if day in hdays and "hourly" in only:
+        if day in hdays and "hourly" in only and todo("hourly_views", day):
             load_hourly(spark, cfg, day)
-        if day in hdays and "daily" in only:
+        if day in hdays and "daily" in only and todo("daily_views", day):
             load_daily(spark, cfg, day)
-        if day in cdays and "country" in only:
+        if day in cdays and "country" in only and todo("country_daily", day):
             load_country(spark, cfg, day)
     print(f"done in {time.time() - t_all:.0f} s. Now register the partitions in Hive:")
     print("  docker compose exec hiveserver2 bash /workspace/hive/run.sh hive/02_warehouse.hql")

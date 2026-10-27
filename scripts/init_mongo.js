@@ -2,7 +2,7 @@
 // Run: docker compose exec mongo mongosh --quiet /workspace/scripts/init_mongo.js
 const rdb = db.getSiblingDB("radar");
 
-for (const name of ["events", "pages", "validation"]) {
+for (const name of ["events", "pages", "validation", "wikidata_cache"]) {
   if (!rdb.getCollectionNames().includes(name)) {
     rdb.createCollection(name);
   }

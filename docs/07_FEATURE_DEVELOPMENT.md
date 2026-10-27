@@ -183,15 +183,9 @@ For each (lang, title) and each detection **day D**, the baseline uses the hourl
 - `median` = 50th percentile
 - `sigma` = (p75 − p25) / 1.349 (IQR-based robust standard deviation, not distorted by earlier spikes)
 
-Implementation without expensive sliding windows: **explode** each hour row into the detection days it serves, then aggregate once:
+Implementation: each candidate series (504 hourly values) is handled by one pandas function through `groupBy("lang", "page_title").applyInPandas(...)`. Inside, the 7-day window is a plain array slice, and the rule and episode functions come from `spark/common/spikes.py`, which has no Spark imports and is unit-tested on its own (T-U3, T-U4). This avoids exploding every hour into the 7 days it serves (7× the rows) and a percentile aggregation over the result.
 
-```python
-# an hour h serves days D where D-7d <= h < D
-served = dense.withColumn("serve_day", explode(sequence(date(h)+1, date(h)+7)))
-              .filter(col("serve_day").between(detect_start, detect_end))
-base = served.groupBy("lang","page_title","serve_day").agg(
-          percentile_approx("views", [0.25, 0.5, 0.75], 1000).alias("q"))
-```
+**Per-language thresholds.** The defaults below are tuned for English (about 10 million views an hour). Smaller Wikipedias override `min_views` and `baseline_floor` under `spikes.global_hourly.per_lang` in `settings.yaml` (ja 200/20, pt 100/10, hi 40/5, ta 15/3 to start with; step 4.12 tunes them). S1 uses the same per-language `min_views` to choose candidates.
 
 ### Spike rule (per hour)
 
@@ -202,7 +196,7 @@ z      = (views - median) / (sigma + 1)
 spike  = views >= min_views AND ratio >= min_ratio AND z >= min_z
 ```
 
-Defaults: `min_views 1000/hour, min_ratio 4, min_z 5, floor 50` (in `settings.yaml`).
+Defaults: `min_views 1000/hour, min_ratio 10, min_z 5, floor 50`, and an episode must last at least `min_hours` (2) unless it is flagged suspicious (in `settings.yaml`; step 4.12 raised the ratio from 4 and added the minimum length, see `report/tuning_notes.md`).
 
 ### Spike episodes
 
@@ -222,7 +216,7 @@ episode = groupBy(lang, page_title, episode_id).agg(
 
 `suspicious = (end == start) AND (desktop_share > 0.95) AND ratio > 50`: a one-hour, desktop-only, enormous jump is a typical bot pattern. Suspicious episodes are kept but marked, never silently removed.
 
-**Output:** `/radar/output/spikes_global` with columns `lang, page_title, start, end, peak_hour, peak_views, baseline, ratio, desktop_share, suspicious`.
+**Output:** `/radar/output/spikes_global` with columns `lang, page_title, start, end, peak_hour, peak_views, baseline, ratio, z, hours, views_total, desktop_share, suspicious, score` (score = min(ratio, 100) × log10(peak − baseline + 10), the same formula events use).
 
 **Check:** unit tests on synthetic series (`09_TESTING_QA.md` T-U3), plus the top 20 on the dev slice look like real events.
 
@@ -237,11 +231,11 @@ Same idea on `radar.country_daily` (`country, qid, day, views`), grouped by `(co
 | Baseline window | 14 previous days | Daily data needs a longer window |
 | Missing days | Treated as 0 | The row was suppressed, i.e. below the release threshold |
 | Baseline floor | 90 | Equal to the lowest release threshold, so a missing day never becomes an infinite jump |
-| Rule | `views >= 500 AND ratio >= 3 AND z >= 4` | |
+| Rule | `views >= 1000 AND ratio >= 10 AND z >= 4` | Started at 500 / 3; step 4.12 raised both because about half the episodes were items climbing from under the 90-view floor to a few hundred views (see `report/tuning_notes.md`) |
 
 Countries with no published data simply have no rows; the dashboard shows the corresponding empty state.
 
-**Output:** `/radar/output/spikes_country` (`country, qid, day, views, baseline, ratio`).
+**Output:** `/radar/output/spikes_country`, one row per episode of consecutive spike days: `country, country_name, qid, lang, page_title, start, end, peak_day, peak_views, baseline, ratio, z, days, score` (`lang`/`page_title` are the most-read language version that day). Same applyInPandas approach as S2 with `period = 1` and a 14-day window.
 
 ---
 
@@ -249,15 +243,15 @@ Countries with no published data simply have no rows; the dashboard shows the co
 
 **Input:** distinct `(lang, page_title)` from global spikes (+ `qid` already present for country spikes). This is a small set (thousands), so it is collected to the driver.
 
-**Step 1: title → QID** (only for global spikes)
-`GET https://www.wikidata.org/w/api.php?action=wbgetentities&sites={lang}wiki&titles=T1|T2|...&props=info|claims|labels&languages=en&format=json`. Up to **50 titles per call**. Redirects: also try `&redirects=yes`.
+**Step 1: title → QID** (only for global spikes; country spikes already carry the QID)
+`GET https://{lang}.wikipedia.org/w/api.php?action=query&prop=pageprops&ppprop=wikibase_item&redirects=1&titles=T1|T2|...`, up to **50 titles per call**. The Wikipedia API returns the `normalized` and `redirects` steps explicitly, so an old or differently-written title still maps to the item of the page it points to. Then `wbgetentities&ids=Q1|Q2|...` (50 per call) fetches the claims.
 
 **Step 2: claims used**
 
 | Property | Meaning | Use |
 |---|---|---|
 | P31 | instance of | Category rules |
-| P279 | subclass of | Category fallback (one level) |
+| P279 | subclass of | Category fallback (up to three levels, nearest match wins) |
 | P106 | occupation (for humans, P31 = Q5) | Category for people |
 | P17 | country | Event country |
 | P131 | located in the administrative territorial entity | Walk up to the first-level region (state) |
@@ -296,9 +290,9 @@ SELECT ?item ?region ?code WHERE {
 default: Other
 ```
 
-> The QIDs above are a **starting list**. Verify each one on wikidata.org before relying on it, and extend the list by inspecting the "Other" bucket after the first run.
+> The QIDs above are a **starting list**. Every QID in `category_rules.yaml` carries its expected English label, and `enrichment/verify_rules.py` compares them with Wikidata (step 4.7). Extend the list by inspecting the "Other" sample S4 prints after each run. Rules also match up to three levels up the class tree (P31 → P279 → P279 → P279), nearest level first, so a "general election" or a "Lok Sabha constituency" is caught by `public election` / `electoral unit`, and a "UEFA Champions League final" by `sports competition`. Occupations (P106) are walked the same way, so a "baseball player" or "golfer" reaches `athlete`.
 
-**Caching:** every lookup is stored in Mongo `pages` (`_id = "<lang>:<title>"`). Re-runs only query unknown titles.
+**Caching:** every page result is stored in Mongo `pages` (`_id = "<lang>:<title>"`) and every Wikidata item in `wikidata_cache` (`_id = QID`, only the claims used). Re-runs only query unknown titles and items; `--refresh` ignores the page cache. Classes, countries and the P131 chain are fetched level by level in batches of 50, not item by item.
 
 **Etiquette:** User-Agent from settings, ≤ 1 request/second, retry on HTTP 429/5xx honouring `Retry-After`.
 
@@ -314,17 +308,17 @@ default: Other
 
 **Step 2: edges.** Connect two nodes when:
 1. They have the **same QID** (e.g. the English and Hindi articles of one topic, or the global and country spikes of one entity), with peaks within 24 hours; or
-2. One item **links to** the other in its Wikidata claims (`links[]`), and their peak hours are within `group_window_hours` (6).
+2. Both are global (hourly) spikes, one item **links to** the other in its Wikidata claims (`links[]`), and their peak hours are within `group_window_hours` (6). Country spikes are daily, which is too coarse to show that two items belong to one story, so they join events only through rule 1.
 
-Very generic link targets (countries, Q5 "human", languages, years) are excluded from linking, otherwise everything would merge.
+Very generic link targets (countries, Q5 "human", languages, years) are excluded from linking, otherwise everything would merge. Country QIDs are taken from the Wikidata cache (every item with an ISO 3166-1 code). Any target that more than 25 spike nodes link to is treated as a hub and also ignored. Country spikes use days, so for them "within 24 hours" means the same or the next day.
 
-**Step 3: connected components** with union-find on the driver. The number of spike nodes is small (thousands), so this is fast and simple; no graph library is needed.
+**Step 3: connected components** with union-find on the driver. A component about more than `max_members` (50) different items is a chain of links, not one story, so it is split again using rule 1 only. Many spikes of one item (one per language and country) count as one item: Claudia Sheinbaum had 6 language spikes and 48 country spikes, and that is still one story. The number of spike nodes is small (thousands), so this is fast and simple; no graph library is needed.
 
 **Step 4: event fields**
 
 | Field | Rule |
 |---|---|
-| `event_id` | `evt_<YYYYMMDD of first_detected>_<lead QID>` |
+| `event_id` | `evt_<YYYYMMDD of first_detected>_<lead QID>` (pages without a QID: `P` + a short hash of lang and title) |
 | lead article | Member with the highest peak views |
 | title | Lead article's label |
 | category | Most common member category (ties → lead's) |
@@ -341,7 +335,7 @@ Very generic link targets (countries, Q5 "human", languages, years) are excluded
 
 **Country-only events:** a country spike with no matching global spike becomes its own event with scope `R:<CC>` only.
 
-**Output:** `/radar/output/events` (one row per event, arrays for members).
+**Output:** `/radar/output/events` (one row per event, arrays for members). Events with a global lead also carry the lead article's hourly curve from 48 hours before to 48 hours after the peak, for the dashboard.
 
 **Check:** the dev day's top events are coherent (no giant "everything" event, no duplicates of one topic in the top 10).
 

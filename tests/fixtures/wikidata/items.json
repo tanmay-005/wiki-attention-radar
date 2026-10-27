@@ -1,0 +1,467 @@
+{
+ "Q668": {
+  "label": "India",
+  "instance_of": [],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": "IN",
+  "links": [],
+  "_id": "Q668"
+ },
+ "Q96": {
+  "label": "Mexico",
+  "instance_of": [],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": "MX",
+  "links": [],
+  "_id": "Q96"
+ },
+ "Q928": {
+  "label": "Philippines",
+  "instance_of": [],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": "PH",
+  "links": [],
+  "_id": "Q928"
+ },
+ "Q1498": {
+  "label": "Uttar Pradesh",
+  "instance_of": [],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [
+   "Q668"
+  ],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": "IN-UP",
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q1498"
+ },
+ "Q900000101": {
+  "label": "general election",
+  "instance_of": [],
+  "subclass_of": [
+   "Q40231"
+  ],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000101"
+ },
+ "Q900000102": {
+  "label": "Lok Sabha constituency",
+  "instance_of": [],
+  "subclass_of": [
+   "Q192611"
+  ],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000102"
+ },
+ "Q900000103": {
+  "label": "Ayodhya district",
+  "instance_of": [],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [
+   "Q668"
+  ],
+  "citizenship": [],
+  "located_in": [
+   "Q1498"
+  ],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000103"
+ },
+ "Q900000104": {
+  "label": "Lucknow",
+  "instance_of": [
+   "Q515"
+  ],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [
+   "Q668"
+  ],
+  "citizenship": [],
+  "located_in": [
+   "Q1498"
+  ],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000104"
+ },
+ "Q900000105": {
+  "label": "Negros Occidental",
+  "instance_of": [],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [
+   "Q928"
+  ],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": "PH-NEC",
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000105"
+ },
+ "Q900000106": {
+  "label": "chatbot",
+  "instance_of": [],
+  "subclass_of": [
+   "Q7397"
+  ],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000106"
+ },
+ "Q900000001": {
+  "label": "2024 Indian general election",
+  "instance_of": [
+   "Q900000101"
+  ],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [
+   "Q668"
+  ],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000001"
+ },
+ "Q900000002": {
+  "label": "Faizabad Lok Sabha constituency",
+  "instance_of": [
+   "Q900000102"
+  ],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [
+   "Q668"
+  ],
+  "citizenship": [],
+  "located_in": [
+   "Q900000103"
+  ],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000002"
+ },
+ "Q213854": {
+  "label": "Virat Kohli",
+  "instance_of": [
+   "Q5"
+  ],
+  "subclass_of": [],
+  "occupation": [
+   "Q12299841"
+  ],
+  "country": [],
+  "citizenship": [
+   "Q668"
+  ],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q213854"
+ },
+ "Q900000003": {
+  "label": "Claudia Sheinbaum",
+  "instance_of": [
+   "Q5"
+  ],
+  "subclass_of": [],
+  "occupation": [
+   "Q82955",
+   "Q901"
+  ],
+  "country": [],
+  "citizenship": [
+   "Q96"
+  ],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000003"
+ },
+ "Q900000004": {
+  "label": "Kanlaon",
+  "instance_of": [
+   "Q169358"
+  ],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [
+   "Q928"
+  ],
+  "citizenship": [],
+  "located_in": [
+   "Q900000105"
+  ],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000004"
+ },
+ "Q900000005": {
+  "label": "Furiosa: A Mad Max Saga",
+  "instance_of": [
+   "Q11424"
+  ],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000005"
+ },
+ "Q900000006": {
+  "label": "ChatGPT",
+  "instance_of": [
+   "Q900000106"
+  ],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000006"
+ },
+ "Q900000007": {
+  "label": "Samajwadi Party",
+  "instance_of": [
+   "Q7278"
+  ],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [
+   "Q668"
+  ],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [
+   "Q900000104"
+  ],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000007"
+ },
+ "Q900000008": {
+  "label": "Mercury (disambiguation)",
+  "instance_of": [
+   "Q4167410"
+  ],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000008"
+ },
+ "Q515": {
+  "label": "city",
+  "instance_of": [],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q515"
+ },
+ "Q900000009": {
+  "label": "2014 UEFA Champions League final",
+  "instance_of": [
+   "Q900000109"
+  ],
+  "subclass_of": [],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000009"
+ },
+ "Q900000109": {
+  "label": "UEFA Champions League final",
+  "instance_of": [],
+  "subclass_of": [
+   "Q900000110"
+  ],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000109"
+ },
+ "Q900000110": {
+  "label": "association football final",
+  "instance_of": [],
+  "subclass_of": [
+   "Q900000111"
+  ],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000110"
+ },
+ "Q900000111": {
+  "label": "final",
+  "instance_of": [],
+  "subclass_of": [
+   "Q13406554"
+  ],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000111"
+ },
+ "Q900000010": {
+  "label": "A baseball player",
+  "instance_of": [
+   "Q5"
+  ],
+  "subclass_of": [],
+  "occupation": [
+   "Q900000112"
+  ],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000010"
+ },
+ "Q900000112": {
+  "label": "baseball player",
+  "instance_of": [],
+  "subclass_of": [
+   "Q2066131"
+  ],
+  "occupation": [],
+  "country": [],
+  "citizenship": [],
+  "located_in": [],
+  "location": [],
+  "headquarters": [],
+  "iso3166_2": null,
+  "iso3166_1": null,
+  "links": [],
+  "_id": "Q900000112"
+ }
+}

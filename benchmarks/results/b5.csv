@@ -1,0 +1,3 @@
+api,seconds,rows,views,shuffle_write_mb,shuffle_read_mb
+rdd_reduceByKey,149.7,7945069,274484789,160.0,160.0
+dataframe_groupBy,43.0,7945069,274484789,203.8,203.8

@@ -1,0 +1,119 @@
+# Category rules (step 4.7). Ordered: the first rule that matches wins.
+#
+#   p31  : classes the item is an instance of (P31). Also checked one level up: if the
+#          item's class is a subclass (P279) of a listed class, that counts too, so
+#          "2024 Indian general election" (instance of "general election", which is a
+#          subclass of "election") still lands in Politics.
+#   p106 : occupations (P106), used for people.
+#
+# Every QID carries the English label it is supposed to have. Before relying on the
+# rules, check them against Wikidata:
+#   docker compose exec edge python3 enrichment/verify_rules.py
+default: Other
+
+rules:
+  - category: Disasters
+    p31:
+      Q8065: natural disaster
+      Q3839081: disaster
+      Q7944: earthquake
+      Q8068: flood
+      Q8092: tropical cyclone
+      Q168983: conflagration
+      Q2223653: terrorist attack
+      Q171558: accident
+      Q744913: aviation accident
+      Q8072: volcano
+      Q169358: stratovolcano
+
+  - category: Sports
+    p31:
+      Q13406554: sports competition
+      Q16510064: sporting event
+      Q27020041: sports season
+      Q500834: tournament
+      Q847017: sports club
+      Q12973014: sports team
+      Q476028: association football club
+      Q483110: stadium
+    p106:
+      Q2066131: athlete
+      Q12299841: cricketer
+      Q937857: association football player
+      Q10833314: tennis player
+      Q3665646: basketball player
+      Q10873124: chess player
+
+  - category: Politics
+    p31:
+      Q40231: public election
+      Q858439: presidential election
+      Q7278: political party
+      Q4164871: position
+      Q7188: government
+      Q35749: parliament
+      Q192611: electoral unit
+      Q175331: demonstration
+    p106:
+      Q82955: politician
+
+  - category: Entertainment
+    p31:
+      Q11424: film
+      Q24856: film series
+      Q5398426: television series
+      Q3464665: television series season
+      Q21191270: television series episode
+      Q1107: anime
+      Q482994: album
+      Q134556: single
+      Q7366: song
+      Q215380: musical group
+      Q7889: video game
+      Q4504495: award ceremony
+    p106:
+      Q33999: actor
+      Q10800557: film actor
+      Q10798782: television actor
+      Q2259451: stage actor
+      Q2405480: voice actor
+      Q177220: singer
+      Q488205: singer-songwriter
+      Q639669: musician
+      Q2526255: film director
+      Q245068: comedian
+      Q4610556: model
+
+  - category: Science & Tech
+    p31:
+      Q7397: software
+      Q166142: application software
+      Q9135: operating system
+      Q35127: website
+      Q1668024: service on internet
+      Q19723451: smartphone model
+      Q40218: spacecraft
+      Q2133344: space mission
+    p106:
+      Q901: scientist
+      Q82594: computer scientist
+
+  - category: Business
+    p31:
+      Q4830453: business
+      Q783794: company
+      Q891723: public company
+      Q223371: stock market index
+      Q8142: currency
+      Q66344: central bank
+    p106:
+      Q43845: businessperson
+      Q131524: entrepreneur
+
+# Classes that mark the first P131 / P276 hop as a city (used for city_qid)
+city_classes:
+  Q515: city
+  Q1549591: big city
+  Q3957: town
+  Q7930989: city or town
+  Q200250: metropolis
