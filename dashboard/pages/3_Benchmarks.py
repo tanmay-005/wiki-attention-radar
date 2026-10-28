@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from ui import ACCENT, NEUTRAL, plotly_layout
+from ui import BASELINE, NEUTRAL, PRIMARY, plotly_layout
 
 RES = Path(__file__).resolve().parents[2] / "benchmarks" / "results"
 
@@ -22,7 +22,7 @@ def load(name: str) -> pd.DataFrame | None:
 def bars(labels, values, title, unit, best="min", fmt=",.0f"):
     vals = list(values)
     pick = min(vals) if best == "min" else max(vals)
-    fig = go.Figure(go.Bar(x=list(labels), y=vals, marker_color=[ACCENT if v == pick else NEUTRAL for v in vals],
+    fig = go.Figure(go.Bar(x=list(labels), y=vals, marker_color=[PRIMARY if v == pick else NEUTRAL for v in vals],
                            text=[f"{v:{fmt}}" for v in vals], textposition="outside",
                            hovertemplate="%{x}: %{y:" + fmt + "} " + unit + "<extra></extra>"))
     fig.update_layout(**plotly_layout(height=260), yaxis_title=unit, title=dict(text=title, font=dict(size=14)))
@@ -78,7 +78,7 @@ else:
         names = {"q1_count_sum_s": "Q1 count + sum", "q2_one_language_top10_s": "Q2 top 10 (one language)",
                  "q3_hourly_curve_s": "Q3 views per hour"}
         fig = go.Figure()
-        for fmt, colour in zip(b3["format"], [NEUTRAL, ACCENT, "#7A7466"]):
+        for fmt, colour in zip(b3["format"], [NEUTRAL, PRIMARY, BASELINE]):
             part = long[long["format"] == fmt]
             fig.add_bar(name=fmt, x=[names[q] for q in part["query"]], y=part["s"], marker_color=colour)
         fig.update_layout(**plotly_layout(height=260), barmode="group", yaxis_title="s",
