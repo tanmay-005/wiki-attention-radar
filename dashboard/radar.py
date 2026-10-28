@@ -299,7 +299,7 @@ def daily_chart(scope: str, days: list[dt.date], meta: dict, langs) -> None:
     shown = [d for d in shown if d >= meta["detect_start"]]
     panel("New stories per day, by category", "Counted on the day each story was first detected · the selected "
           "window is solid, earlier days are faded")
-    per_day = {d: da.get_category_counts(scope, (d,)) for d in shown}
+    per_day = da.get_daily_category_counts(scope, tuple(shown))
     fig = go.Figure()
     for cat in CAT_ORDER:
         ys = [per_day[d].get(cat, 0) for d in shown]

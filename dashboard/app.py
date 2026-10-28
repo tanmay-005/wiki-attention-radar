@@ -3,6 +3,8 @@
 Run on Windows from the repo root (Docker's nosql services must be running):
     streamlit run dashboard/app.py
 """
+import time
+
 import streamlit as st
 
 st.set_page_config(page_title="Attention Radar", page_icon="◎", layout="wide")
@@ -16,7 +18,14 @@ apply_style()
 
 def radar_page() -> None:
     require_databases(da)
-    radar.render()
+    t0 = time.perf_counter()
+    try:
+        radar.render()
+    finally:                                     # acceptance test A14: every filter change < 1 s
+        s = st.session_state
+        print(f"[timing] Overview {1000 * (time.perf_counter() - t0):6.0f} ms   country={s.get('country') or 'Global'} "
+              f"mode={s.get('mode')} state={s.get('region') or 'All'} category={s.get('category')} "
+              f"lang={s.get('lang')} window={s.get('window')}", flush=True)
 
 
 nav = st.navigation([

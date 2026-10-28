@@ -102,6 +102,20 @@ def get_meta() -> dict:
             "pipeline_run": m.get("pipeline_run"), "events": m.get("events")}
 
 
+def country_name(code: str, name: str | None) -> str:
+    """Countries that appear only as a story's location were stored with their code as the name."""
+    if name and name != code:
+        return name
+    if code == "XK":                              # Kosovo: used by Wikimedia, not in ISO 3166-1
+        return "Kosovo"
+    try:
+        import pycountry
+        hit = pycountry.countries.get(alpha_2=code)
+        return getattr(hit, "common_name", None) or hit.name if hit else (name or code)
+    except ImportError:
+        return name or code
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def list_countries() -> list[dict]:
     """Countries present in the data: [{code, name, readers, about}], India first, then by name.
@@ -116,7 +130,8 @@ def list_countries() -> list[dict]:
                                        {"$group": {"_id": "$location.country", "name": {"$first": "$location.country_name"}}}]):
         names.setdefault(row["_id"], row["name"])
         about.add(row["_id"])
-    out = [{"code": c, "name": names[c] or c, "readers": c in readers, "about": c in about} for c in names if c]
+    out = [{"code": c, "name": country_name(c, names[c]), "readers": c in readers, "about": c in about}
+           for c in names if c]
     return sorted(out, key=lambda d: (d["code"] != "IN", d["name"]))
 
 
@@ -145,16 +160,34 @@ def reader_regions(country: str, langs=None) -> list[dict]:
 
 
 # ---- ranked events ---------------------------------------------------------------
+@st.cache_resource(show_spinner=False)
+def _prepared() -> dict:
+    s = _cassandra()
+    return {
+        "rank": s.prepare("SELECT event_id, title, score, ratio, peak_views, first_seen, langs, place, sparkline, "
+                          "suspicious FROM event_rank WHERE scope = ? AND day = ? AND category = ? LIMIT 2000"),
+        "counts": s.prepare("SELECT category, spikes FROM spike_counts WHERE scope = ? AND day = ?"),
+    }
+
+
+def _per_day(name: str, args: list[tuple]) -> list:
+    """Run one prepared query for many partitions (one per day) in parallel, results in input order.
+    A window of 30 days is 30 partitions: sent together they cost about one round trip, not 30."""
+    from cassandra.concurrent import execute_concurrent_with_args
+    res = execute_concurrent_with_args(_cassandra(), _prepared()[name], args, concurrency=32,
+                                       raise_on_first_error=True)
+    return [list(r.result_or_exc) for r in res]
+
+
 @st.cache_data(ttl=300, show_spinner=False)
-def _rank_partition(scope: str, day: dt.date, category: str) -> list[dict]:
-    rows = _cassandra().execute(
-        "SELECT event_id, title, score, ratio, peak_views, first_seen, langs, place, sparkline, suspicious "
-        "FROM event_rank WHERE scope = %s AND day = %s AND category = %s LIMIT 2000",
-        (scope, day, category))
-    return [{"event_id": r.event_id, "title": r.title, "score": r.score, "ratio": r.ratio,
-             "peak_views": r.peak_views, "first_seen": r.first_seen, "langs": sorted(r.langs or []),
-             "place": r.place, "sparkline": list(r.sparkline or []), "suspicious": bool(r.suspicious),
-             "category": category} for r in rows]
+def _rank_days(scope: str, days: tuple[dt.date, ...], category: str) -> list[dict]:
+    out = []
+    for rows in _per_day("rank", [(scope, d, category) for d in days]):
+        out += [{"event_id": r.event_id, "title": r.title, "score": r.score, "ratio": r.ratio,
+                 "peak_views": r.peak_views, "first_seen": r.first_seen, "langs": sorted(r.langs or []),
+                 "place": r.place, "sparkline": list(r.sparkline or []), "suspicious": bool(r.suspicious),
+                 "category": category} for r in rows]
+    return out
 
 
 def item_key(event_id: str) -> str:
@@ -168,11 +201,10 @@ def get_top_events(scope: str, days: list[dt.date], category: str = "ALL",
     """Ranked events for a scope over the given days: one partition per day, merged by
     Wikidata item (highest score kept), filtered by language, sorted by score."""
     best: dict[str, dict] = {}
-    for day in days:
-        for e in _rank_partition(scope, day, category):
-            key = item_key(e["event_id"])                 # the same item spiking twice is one story
-            if key not in best or e["score"] > best[key]["score"]:
-                best[key] = e
+    for e in _rank_days(scope, tuple(days), category):
+        key = item_key(e["event_id"])                     # the same item spiking twice is one story
+        if key not in best or e["score"] > best[key]["score"]:
+            best[key] = e
     by_title: dict[str, dict] = {}                       # and two items with the same name read as one story
     for e in best.values():
         t = e["title"].casefold()
@@ -184,14 +216,17 @@ def get_top_events(scope: str, days: list[dt.date], category: str = "ALL",
 
 
 @st.cache_data(ttl=300, show_spinner=False)
+def get_daily_category_counts(scope: str, days: tuple[dt.date, ...]) -> dict[dt.date, dict[str, int]]:
+    """{day: {category: new stories}} from the counter table spike_counts, all days in parallel."""
+    return {d: {r.category: r.spikes for r in rows if r.category != "ALL"}
+            for d, rows in zip(days, _per_day("counts", [(scope, d) for d in days]))}
+
+
 def get_category_counts(scope: str, days: tuple[dt.date, ...]) -> dict[str, int]:
-    """Spikes per category from the counter table spike_counts (all languages)."""
+    """Spikes per category over the days."""
     counts = Counter()
-    s = _cassandra()
-    for day in days:
-        for r in s.execute("SELECT category, spikes FROM spike_counts WHERE scope = %s AND day = %s", (scope, day)):
-            if r.category != "ALL":
-                counts[r.category] += r.spikes
+    for c in get_daily_category_counts(scope, tuple(days)).values():
+        counts.update(c)
     return dict(counts)
 
 

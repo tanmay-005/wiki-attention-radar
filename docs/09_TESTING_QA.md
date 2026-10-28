@@ -104,12 +104,12 @@ The labelling procedure for precision@50: for each event, check the lead article
 
 | ID | Steps | Expected |
 |---|---|---|
-| A1 | Open the app | Global, All categories, All languages, 24 h; list not empty; summary sentence correct |
+| A1 | Open the app | Global, All categories, All languages, 7 days; list not empty; summary sentence correct |
 | A2 | Country = India | List = `R:IN`; Mode = Readers in; State enabled |
 | A3 | Global + Politics | Only Politics events; category bar highlighted |
 | A4 | India + Politics | Only Politics events in `R:IN` |
-| A5 | India → State = Rajasthan | Mode switches to Events about; only events located in Rajasthan |
-| A6 | A5 then Mode = Readers in | State resets to All; list = `R:IN` |
+| A5 | India → Events about → State = Rajasthan | List = `A:IN:IN-RJ`; only stories located in Rajasthan |
+| A6 | India → Readers in → State = Tamil Nadu, then switch to Events about and back | List = `R:IN:IN-TN` (Tamil Wikipedia spikes, explained in the header); the state stays selected in both modes, with an empty-state message where a mode has no data |
 | A7 | Language = Hindi | Every row's languages include Hindi |
 | A8 | Time window 7 days | More or equal events than 24 h; no duplicates |
 | A9 | Click a list row | Detail panel updates; chart shows the baseline line; country bars present |
@@ -117,7 +117,7 @@ The labelling procedure for precision@50: for each event, check the lead article
 | A11 | Reset | All defaults restored |
 | A12 | Stop Cassandra, reload | Red "cannot reach database" banner, no stack trace |
 | A13 | A country with no data | Empty-state message from `04_UI_UX_DESIGN.md` |
-| A14 | Timing | Every filter change renders in < 1 s (measure with the browser network tab or log timings) |
+| A14 | Timing | Every filter change renders in < 1 s (the `[timing]` line app.py prints in the terminal for each run) |
 
 ---
 

@@ -114,6 +114,10 @@ def get_cards(ids):
     return out
 
 
+def get_daily_category_counts(scope, days):
+    return {d: get_category_counts(scope, (d,)) for d in days}
+
+
 def get_category_counts(scope, days):
     c = {}
     for e in get_top_events(scope, list(days), limit=None):
