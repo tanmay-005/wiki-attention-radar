@@ -85,6 +85,16 @@ def test_build_event_lead_category_location():
     e = build_event(members)
     assert e["event_id"] == "evt_20240604_Q1" and e["title"] == "Election"
     assert e["category"] == "Politics" and e["loc_region"] == "IN-UP"
-    assert e["scopes"] == ["G", "R:IN", "A:IN", "A:IN:IN-UP"]
+    hindi = ["IN-BR", "IN-CG", "IN-DL", "IN-HP", "IN-HR", "IN-JH", "IN-MP", "IN-RJ", "IN-UK", "IN-UP"]
+    assert e["scopes"] == ["G", "R:IN"] + [f"R:IN:{s}" for s in hindi] + ["A:IN", "A:IN:IN-UP"]
+    assert {s["lang"] for s in e["states"]} == {"hi"} and e["states"][0]["peak_views"] == 4000
     assert [a["role"] for a in e["articles"]] == ["lead", "member"] and e["langs"] == ["en", "hi"]
     assert e["countries"][0]["code"] == "IN" and not e["suspicious"]
+
+
+def test_state_readers_from_language_spikes():
+    e = build_event([node("Q7", 0, peak_views=9000), node("Q7", 1, lang="te", peak_views=300, ratio=12.0),
+                     node("Q7", 2, lang="ta", peak_views=50, suspicious=True)])     # bot-like: not listed
+    assert [(s["code"], s["lang"], s["ratio"]) for s in e["states"]] == [("IN-AP", "te", 12.0), ("IN-TG", "te", 12.0)]
+    assert "R:IN:IN-AP" in e["scopes"] and "R:IN:IN-TN" not in e["scopes"]
+    assert scope_keys(True, [], None, None, ["IN-TN"]) == ["G", "R:IN:IN-TN"]

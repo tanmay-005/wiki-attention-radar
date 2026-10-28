@@ -1,6 +1,7 @@
-streamlit
+streamlit>=1.45
 plotly
 pandas
 pymongo
 cassandra-driver
 pyyaml
+pycountry

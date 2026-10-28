@@ -31,7 +31,9 @@ SCHEMA = (
     "day date, score double, ratio double, peak_views long, baseline_views double, langs array<string>, "
     "loc_country string, loc_region string, loc_region_name string, loc_city_qid string, "
     "articles array<struct<qid:string,lang:string,title:string,peak_views:long,ratio:double,role:string>>, "
-    "countries array<struct<code:string,ratio:double,peak_views:long,day:date>>, scopes array<string>, "
+    "countries array<struct<code:string,ratio:double,peak_views:long,day:date>>, "
+    "states array<struct<code:string,lang:string,ratio:double,peak_views:long,baseline:double,"
+    "first:timestamp,peak:timestamp>>, scopes array<string>, "
     "suspicious boolean, members int, lead_lang string, lead_title string, "
     "curve array<struct<t:timestamp,v:long,b:double>>")
 META = ["qid", "label", "category", "country", "region_code", "region_name", "city_qid", "links"]

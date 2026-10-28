@@ -46,3 +46,11 @@ def test_normalize_title():
     assert normalize_title("__a___b__") == "a b"
     assert normalize_title("%E0%A4%AD%E0%A4%BE%E0%A4%B0%E0%A4%A4") == "भारत"
     assert len(normalize_title("x" * 600)) == 255
+
+
+def test_fetched_namespaces_of_other_wikis(monkeypatch):
+    import common_title as ct
+    monkeypatch.setattr(ct, "EXTRA_LOCAL", {"te": {"వర్గం"}})
+    monkeypatch.setattr(ct, "EXTRA_MAIN", {"te": {"మొదటి_పేజీ"}})
+    assert not ct.is_content_page("te", "వర్గం:Films") and not ct.is_content_page("te", "మొదటి_పేజీ")
+    assert ct.is_content_page("te", "Some_film") and ct.is_content_page("hi", "వర్గం:Films")

@@ -106,7 +106,12 @@ def main() -> None:
     regions = region_index(events)
     trend = trending(events, last_day)
     run = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None, microsecond=0)
-    docs = [mongo_doc(e, country_names, city_names, run) for e in events]
+    try:          # what each event is about and its news lines, from S5b (optional)
+        context = {d["_id"]: d for d in mdb["event_context"].find({})}
+    except Exception:  # noqa: BLE001
+        context = {}
+    docs = [mongo_doc(e, country_names, city_names, run, context.get(e["event_id"])) for e in events]
+    print(f"context from S5b: {sum(1 for e in events if e['event_id'] in context):,} of {len(events):,} events")
     print(f"event_rank rows: {len(ranks):,}, spike_counts increments: {len(counters):,}, "
           f"regions: {len(regions):,}, trending_now rows ({last_day}): {len(trend):,}, Mongo documents: {len(docs):,}")
 
@@ -182,11 +187,12 @@ def main() -> None:
             df.unpersist()
 
     if not a.dry_run:
-        print("\ncheck: top 5 for scope G, 2024-06-04, ALL")
-        spark_top = sorted((e for e in events if "G" in e["scopes"] and dt.date(2024, 6, 4) in
+        check_day = last_day - dt.timedelta(days=1)
+        print(f"\ncheck: top 5 for scope G, {check_day}, ALL")
+        spark_top = sorted((e for e in events if "G" in e["scopes"] and check_day in
                             {r[1] for r in rank_rows(e, {}) if r[0] == "G"}), key=lambda e: -e["score"])[:5]
         cass_top = list(s.execute("SELECT event_id, title, score FROM event_rank "
-                                  "WHERE scope = 'G' AND day = '2024-06-04' AND category = 'ALL' LIMIT 5"))
+                                  "WHERE scope = 'G' AND day = %s AND category = 'ALL' LIMIT 5", (check_day,)))
         for x, y in zip(spark_top, cass_top):
             print(f"  {x['event_id']:<32} {y.event_id:<32} {'same' if x['event_id'] == y.event_id else 'DIFFERENT'}"
                   f"  {y.title[:40]}")

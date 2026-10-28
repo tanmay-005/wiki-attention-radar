@@ -8,7 +8,8 @@ from __future__ import annotations
 import datetime as dt
 from collections import defaultdict
 
-from enrichment.regions import is_iso_region
+from enrichment.regions import STATE_NAMES, is_iso_region
+from spark.common.events import event_score
 
 MAX_ACTIVE_DAYS = 7
 
@@ -46,25 +47,48 @@ def active_days(first_detected: dt.datetime, peak_time: dt.datetime) -> list[dt.
     return [start + dt.timedelta(days=i) for i in range(n)]
 
 
+def scope_numbers(e: dict, scope: str) -> tuple[float, float, int, list[dt.date]]:
+    """(score, ratio, peak views, days listed) of an event in one scope.
+
+    Worldwide and "Events about" scopes use the event's own hourly numbers. A "Readers in" scope
+    (R:<CC>) uses that country's daily spike instead, so the list for India is ranked by how much
+    more people *in India* read about it than they normally do, on the day they did. A state scope
+    (R:<CC>:<STATE>) uses the hourly spike on that state's language Wikipedia."""
+    if scope.startswith("R:") and scope.count(":") == 2:
+        s = next((x for x in e.get("states") or [] if x["code"] == scope.split(":")[2]), None)
+        if s:
+            ratio, peak = float(s["ratio"]), int(s["peak_views"])
+            return (float(event_score(ratio, peak, float(s["baseline"]))), ratio, peak,
+                    active_days(s["first"], s["peak"]))
+    elif scope.startswith("R:"):
+        c = next((x for x in e.get("countries") or [] if x["code"] == scope[2:]), None)
+        if c:
+            ratio = min(float(c["ratio"]), 100.0)
+            peak = int(c["peak_views"])
+            day = c["day"].date() if isinstance(c["day"], dt.datetime) else c["day"]
+            return float(event_score(ratio, peak, peak / max(float(c["ratio"]), 1e-9))), ratio, peak, [day]
+    return float(e["score"]), float(e["ratio"]), int(e["peak_views"]), active_days(e["first_detected"], e["peak_time"])
+
+
 def rank_rows(e: dict, country_names: dict[str, str]) -> list[tuple]:
-    """event_rank rows: every scope x every active day x ('ALL', the event's category)."""
+    """event_rank rows: every scope x every day it is listed x ('ALL', the event's category)."""
     region_name = e.get("loc_region_name") if is_iso_region(e.get("loc_region")) else None
     place = place_label(region_name, e.get("loc_country"), country_names)
     spark = sparkline(e.get("curve"))
     rows = []
     for scope in e["scopes"]:
-        for day in active_days(e["first_detected"], e["peak_time"]):
+        score, ratio, peak, days = scope_numbers(e, scope)
+        for day in days:
             for category in ("ALL", e["category"]):
-                rows.append((scope, day, category, float(e["score"]), e["event_id"], e["title"], float(e["ratio"]),
-                             int(e["peak_views"]), e["first_detected"], set(e.get("langs") or []), place, spark,
-                             bool(e["suspicious"])))
+                rows.append((scope, day, category, score, e["event_id"], e["title"], ratio, peak,
+                             e["first_detected"], set(e.get("langs") or []), place, spark, bool(e["suspicious"])))
     return rows
 
 
 def counter_keys(e: dict) -> list[tuple]:
-    """spike_counts increments: one per scope on the day of first detection, for 'ALL' and the category."""
-    day = e["first_detected"].date()
-    return [(scope, day, c) for scope in e["scopes"] for c in ("ALL", e["category"])]
+    """spike_counts increments: one per scope and category ('ALL' and the event's own), on the day of
+    first detection, or for a "Readers in" scope the day readers in that country spiked."""
+    return [(scope, scope_numbers(e, scope)[3][0], c) for scope in e["scopes"] for c in ("ALL", e["category"])]
 
 
 def region_index(events: list[dict]) -> list[tuple]:
@@ -82,17 +106,21 @@ def trending(events: list[dict], day: dt.date, top: int = 20) -> list[tuple]:
     """trending_now rows: the top events per scope among those listed on `day`."""
     by_scope = defaultdict(list)
     for e in events:
-        if day in active_days(e["first_detected"], e["peak_time"]) and not e["suspicious"]:
-            for scope in e["scopes"]:
-                by_scope[scope].append(e)
+        if e["suspicious"]:
+            continue
+        for scope in e["scopes"]:
+            score, ratio, _, days = scope_numbers(e, scope)
+            if day in days:
+                by_scope[scope].append((score, ratio, e))
     rows = []
     for scope, evs in sorted(by_scope.items()):
-        for e in sorted(evs, key=lambda x: -x["score"])[:top]:
-            rows.append((scope, float(e["score"]), e["event_id"], e["title"], float(e["ratio"])))
+        for score, ratio, e in sorted(evs, key=lambda x: -x[0])[:top]:
+            rows.append((scope, score, e["event_id"], e["title"], ratio))
     return rows
 
 
-def mongo_doc(e: dict, country_names: dict[str, str], city_names: dict[str, str], run: dt.datetime) -> dict:
+def mongo_doc(e: dict, country_names: dict[str, str], city_names: dict[str, str], run: dt.datetime,
+              context: dict | None = None) -> dict:
     """The MongoDB `events` document (docs/03_DATA_MODEL.md section 5.1)."""
     loc = None
     if e.get("loc_country"):
@@ -117,10 +145,13 @@ def mongo_doc(e: dict, country_names: dict[str, str], city_names: dict[str, str]
         "articles": [dict(a) for a in (e.get("articles") or [])],
         "countries": [{**dict(c), "name": country_names.get(c["code"], c["code"]), "day": as_datetime(c["day"])}
                       for c in (e.get("countries") or [])],
+        "states": [{**dict(s), "name": STATE_NAMES.get(s["code"], s["code"])} for s in (e.get("states") or [])],
         "curve": [{"t": p["t"], "v": int(p["v"]), "b": float(p["b"])} for p in (e.get("curve") or [])],
         "scopes": list(e["scopes"]),
         "suspicious": bool(e["suspicious"]),
         "members": int(e["members"]),
         "lead": {"lang": e["lead_lang"], "title": e["lead_title"]},
+        "about": (context or {}).get("about"),           # from S5b: description, extract, thumbnail
+        "news": (context or {}).get("news") or [],        # from S5b: matching lines of Wikipedia's news pages
         "pipeline_run": run,
     }

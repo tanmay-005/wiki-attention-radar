@@ -54,3 +54,12 @@ def test_entities_batches_of_50_and_memory_cache():
     assert [len(r["ids"].split("|")) for r in c.requests] == [50, 50, 20]
     c.entities(qids[:10])                        # second time: no new request
     assert len(c.requests) == 3
+
+
+def test_old_cached_records_are_fetched_again_when_a_field_is_needed():
+    c = FakeClient([{"entities": {"Q1": {"id": "Q1", "labels": {}, "claims": {
+        "P768": [{"mainsnak": {"datavalue": {"value": {"id": "Q1156"}}}}]}}}}])
+    c.mem["Q1"] = {"_id": "Q1", "label": None, "located_in": []}      # written before P768 was kept
+    assert c.entities(["Q1"])["Q1"].get("electoral_district") is None and not c.requests
+    assert c.entities(["Q1"], need=("electoral_district",))["Q1"]["electoral_district"] == ["Q1156"]
+    assert len(c.requests) == 1

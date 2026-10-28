@@ -64,3 +64,11 @@ def test_item_that_is_a_region_and_a_foreign_volcano():
     assert resolve(ITEMS["Q1498"], get, CITY)["region_code"] == "IN-UP"
     r = resolve(ITEMS["Q900000004"], get, CITY)
     assert (r["region_code"], r["country"]) == ("PH-NEC", "PH")
+
+
+def test_politician_region_from_seat_but_not_from_birthplace():
+    born = {**ITEMS["Q213854"], "birthplace": ["Q900000104"]}                # born in Lucknow: not used
+    assert resolve(born, get, CITY)["region_code"] is None
+    mla = {**ITEMS["Q213854"], "electoral_district": ["Q900000002"]}        # holds a seat in UP
+    r = resolve(mla, get, CITY)
+    assert (r["region_code"], r["country"], r["city_qid"]) == ("IN-UP", "IN", None)

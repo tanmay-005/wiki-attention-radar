@@ -382,6 +382,10 @@ Built exactly as specified in `04_UI_UX_DESIGN.md`. Key implementation notes:
 
 **Check:** all five scenarios in `04_UI_UX_DESIGN.md` §4 and every empty state behave as specified.
 
+**Files:** `dashboard/app.py` (page navigation), `radar.py` (Radar page), `data_access.py` (every database read, cached), `ui.py` (colours, CSS, banner when a database is down), `pages/2_Validation.py`, `3_Benchmarks.py`, `4_About.py`. `tests/dashboard/test_radar.py` runs the five scenarios and the empty states with Streamlit's `AppTest` against a fake data layer (`tests/dashboard/fake_data.py`), so they need no database.
+
+Two details found while building it: rows of `event_rank` for category 'ALL' do not carry the event's own category, so the list looks categories up in MongoDB in one batch (`get_categories`); and the "Trending now" panel is empty 48 hours after a load, because `trending_now` rows expire (TTL), which the panel explains.
+
 ---
 
 ## F12 · Validation (FR-30)

@@ -68,6 +68,14 @@ _MAIN_PAGES = {
 }
 
 
+# Namespace and main-page names of the other configured wikis (Telugu, Marathi, ...), written
+# by scripts/fetch_namespaces.py from each wiki's own siteinfo and shipped next to this file.
+try:
+    from namespaces_extra import EXTRA_LOCAL, EXTRA_MAIN
+except ImportError:
+    EXTRA_LOCAL, EXTRA_MAIN = {}, {}
+
+
 def parse_domain(domain: str, allowed: set[str]) -> tuple[str, str] | None:
     """'en' -> ('en','desktop'), 'en.m' -> ('en','mobile'); anything else -> None."""
     lang, _, rest = domain.partition(".")
@@ -88,11 +96,11 @@ def is_content_page(lang: str, raw_title: str) -> bool:
     """False for '-', empty titles, main pages and namespace pages."""
     if not raw_title or raw_title == "-":
         return False
-    if raw_title in _MAIN_PAGES.get(lang, ()):
+    if raw_title in _MAIN_PAGES.get(lang, ()) or raw_title in EXTRA_MAIN.get(lang, ()):
         return False
     if ":" in raw_title:
         p = _prefix_key(raw_title)
-        if p in _CANONICAL or p in _LOCAL.get(lang, ()):
+        if p in _CANONICAL or p in _LOCAL.get(lang, ()) or p in EXTRA_LOCAL.get(lang, ()):
             return False
     return True
 

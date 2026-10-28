@@ -20,6 +20,8 @@ import hashlib
 import math
 from collections import Counter, defaultdict
 
+from enrichment.regions import LANG_STATES
+
 GENERIC = {"Q5", "Q6256", "Q3624078", "Q7275", "Q515"}   # human, country, sovereign state, state, city
 
 
@@ -112,15 +114,35 @@ def event_score(ratio: float, peak_views: float, baseline: float, cap: float = 1
     return min(ratio, cap) * math.log10(max(peak_views - baseline, 0) + 10)
 
 
-def scope_keys(has_global: bool, reader_countries, loc_country: str | None, loc_region: str | None) -> list[str]:
-    """G (worldwide, per language), R:<CC> (readers in a country), A:<CC>[:<REGION>] (events about a place)."""
+def scope_keys(has_global: bool, reader_countries, loc_country: str | None, loc_region: str | None,
+               reader_states=()) -> list[str]:
+    """G (worldwide, per language), R:<CC> (readers in a country), R:<CC>:<STATE> (readers of that
+    state's language Wikipedia), A:<CC>[:<REGION>] (events about a place)."""
     keys = ["G"] if has_global else []
     keys += [f"R:{c}" for c in sorted(set(c for c in reader_countries if c))]
+    keys += [f"R:{s.split('-')[0]}:{s}" for s in sorted(set(reader_states))]
     if loc_country:
         keys.append(f"A:{loc_country}")
         if loc_region and loc_region.startswith(loc_country + "-"):
             keys.append(f"A:{loc_country}:{loc_region}")
     return keys
+
+
+def lang_states(glob: list[dict], cap: float = 100) -> list[dict]:
+    """One entry per state whose language Wikipedia had a (non-bot) spike in this event, with the
+    numbers of that language's biggest spike: used for the "Readers in <state>" lists."""
+    best = {}
+    for m in glob:
+        if m.get("lang") in LANG_STATES and not m.get("suspicious"):
+            if m["lang"] not in best or m["peak_views"] > best[m["lang"]]["peak_views"]:
+                best[m["lang"]] = m
+    out = []
+    for lang, m in sorted(best.items()):
+        for code in LANG_STATES[lang]:
+            out.append({"code": code, "lang": lang, "ratio": float(min(m["ratio"], cap)),
+                        "peak_views": int(m["peak_views"]), "baseline": float(m["baseline"]),
+                        "first": m["start"], "peak": m["peak"]})
+    return out
 
 
 def build_event(members: list[dict], cap: float = 100) -> dict:
@@ -147,6 +169,7 @@ def build_event(members: list[dict], cap: float = 100) -> dict:
     ratio = float(min(max(m["ratio"] for m in members), cap))
     key = lead.get("qid") or "P" + hashlib.md5(f"{lead['lang']}:{lead['page_title']}".encode()).hexdigest()[:10]
     reader = sorted({m["reader_country"] for m in ctry})
+    states = lang_states(glob, cap)
     return {
         "event_id": f"evt_{first:%Y%m%d}_{key}",
         "title": lead.get("label") or lead["page_title"],
@@ -168,7 +191,9 @@ def build_event(members: list[dict], cap: float = 100) -> dict:
         "countries": [{"code": m["reader_country"], "ratio": float(m["ratio"]), "peak_views": int(m["peak_views"]),
                        "day": m["peak"].date() if isinstance(m["peak"], dt.datetime) else m["peak"]}
                       for m in sorted(ctry, key=lambda m: -m["peak_views"])],
-        "scopes": scope_keys(bool(glob), reader, loc.get("country"), loc.get("region_code")),
+        "states": states,
+        "scopes": scope_keys(bool(glob), reader, loc.get("country"), loc.get("region_code"),
+                             [s["code"] for s in states]),
         "suspicious": bool(glob) and all(m.get("suspicious") for m in glob),
         "members": len(members),
         "lead_lang": lead["lang"], "lead_title": lead["page_title"],

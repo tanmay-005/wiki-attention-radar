@@ -150,6 +150,8 @@ def main() -> None:
     spark = session()
     spark.sparkContext.setLogLevel("WARN")
     spark.sparkContext.addPyFile(str(ROOT / "mapreduce" / "common_title.py"))
+    if (ROOT / "mapreduce" / "namespaces_extra.py").exists():     # other wikis' namespace names
+        spark.sparkContext.addPyFile(str(ROOT / "mapreduce" / "namespaces_extra.py"))
     t_all = time.time()
     wh = f"{cfg['paths']['warehouse']}/radar.db"
 

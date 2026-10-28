@@ -27,7 +27,7 @@ BATCH = 50
 ITEM_PROPS = {
     "P31": "instance_of", "P279": "subclass_of", "P106": "occupation",
     "P17": "country", "P27": "citizenship", "P131": "located_in", "P276": "location",
-    "P159": "headquarters",
+    "P159": "headquarters", "P768": "electoral_district",
 }
 STRING_PROPS = {"P300": "iso3166_2", "P297": "iso3166_1"}
 # properties whose targets count as "linked" items for event grouping
@@ -112,14 +112,19 @@ class WikidataClient:
             from pymongo import ReplaceOne
             self.cache.bulk_write([ReplaceOne({"_id": r["_id"]}, r, upsert=True) for r in records])
 
-    def entities(self, qids: Iterable[str]) -> dict[str, dict]:
-        """Slim records for these QIDs: memory, then Mongo, then Wikidata."""
+    def entities(self, qids: Iterable[str], need: tuple[str, ...] = ()) -> dict[str, dict]:
+        """Slim records for these QIDs: memory, then Mongo, then Wikidata. Cached records that
+        lack a field in `need` (written before that field was added) are fetched again."""
         want = [q for q in dict.fromkeys(qids) if q and q.startswith("Q")]
-        missing = [q for q in want if q not in self.mem]
+
+        def fresh(rec):
+            return rec.get("missing") or all(k in rec for k in need)
+        missing = [q for q in want if q not in self.mem or not fresh(self.mem[q])]
         if missing and self.cache is not None:
             for rec in self.cache.find({"_id": {"$in": missing}}):
-                self.mem[rec["_id"]] = rec
-            missing = [q for q in missing if q not in self.mem]
+                if fresh(rec):
+                    self.mem[rec["_id"]] = rec
+            missing = [q for q in missing if q not in self.mem or not fresh(self.mem[q])]
         for i in range(0, len(missing), BATCH):
             chunk = missing[i:i + BATCH]
             data = self._get({"action": "wbgetentities", "ids": "|".join(chunk),

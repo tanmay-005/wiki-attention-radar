@@ -1,31 +1,28 @@
-"""Attention Radar dashboard (Phase 0 placeholder).
+"""Attention Radar dashboard.
 
-Run from the repo root:  streamlit run dashboard/app.py
+Run on Windows from the repo root (Docker's nosql services must be running):
+    streamlit run dashboard/app.py
 """
-import os
-import socket
-
 import streamlit as st
 
-os.environ.setdefault("RADAR_ENV", "on_host")
+st.set_page_config(page_title="Attention Radar", page_icon="◎", layout="wide")
 
-st.set_page_config(page_title="Attention Radar", layout="wide")
-st.title("Attention Radar")
-st.caption("What the world is suddenly reading about on Wikipedia")
+import data_access as da  # noqa: E402
+import radar  # noqa: E402
+from ui import apply_style, require_databases  # noqa: E402
 
-
-def port_open(host: str, port: int) -> bool:
-    try:
-        with socket.create_connection((host, port), timeout=1):
-            return True
-    except OSError:
-        return False
+apply_style()
 
 
-cass = port_open("127.0.0.1", 9042)
-mongo = port_open("127.0.0.1", 27017)
-c1, c2 = st.columns(2)
-c1.metric("Cassandra (9042)", "reachable" if cass else "not running")
-c2.metric("MongoDB (27017)", "reachable" if mongo else "not running")
+def radar_page() -> None:
+    require_databases(da)
+    radar.render()
 
-st.info("No data yet. The dashboard is built in Phase 6; this page only checks the setup.")
+
+nav = st.navigation([
+    st.Page(radar_page, title="Overview", icon=":material/monitoring:", default=True),
+    st.Page("pages/2_Validation.py", title="Validation", icon=":material/fact_check:"),
+    st.Page("pages/3_Benchmarks.py", title="Benchmarks", icon=":material/speed:"),
+    st.Page("pages/4_About.py", title="About", icon=":material/info:"),
+])
+nav.run()

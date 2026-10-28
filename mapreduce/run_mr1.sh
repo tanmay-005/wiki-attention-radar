@@ -28,6 +28,8 @@ case "$MAPC" in
   gzip)   MAPC_OPTS=(-D mapreduce.map.output.compress=true -D mapreduce.map.output.compress.codec=org.apache.hadoop.io.compress.GzipCodec) ;;
   *) echo "--map-compress must be none|snappy|gzip"; exit 1 ;;
 esac
+MR_FILES="$MR_DIR/mr1_mapper.py,$MR_DIR/sum_reducer.py,$MR_DIR/common_title.py"
+[[ -f "$MR_DIR/namespaces_extra.py" ]] && MR_FILES="$MR_FILES,$MR_DIR/namespaces_extra.py"
 COMB_OPTS=(); [[ "$COMBINER" == yes ]] && COMB_OPTS=(-combiner "python3 sum_reducer.py")
 
 hdfs dfs -rm -r -f -skipTrash "$OUT" >/dev/null 2>&1 || true
@@ -45,7 +47,7 @@ run_job "$LOG" \
   "${MAPC_OPTS[@]}" \
   -D mapreduce.output.fileoutputformat.compress=true \
   -D mapreduce.output.fileoutputformat.compress.codec=org.apache.hadoop.io.compress.GzipCodec \
-  -files "$MR_DIR/mr1_mapper.py,$MR_DIR/sum_reducer.py,$MR_DIR/common_title.py" \
+  -files "$MR_FILES" \
   -cmdenv RADAR_LANGS="$RADAR_LANGS" \
   -mapper "python3 mr1_mapper.py" \
   "${COMB_OPTS[@]}" \

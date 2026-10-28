@@ -18,8 +18,10 @@ def event(**kw):
          "loc_region": "IN-RJ", "loc_region_name": "Rajasthan", "loc_city_qid": "Q66485",
          "articles": [{"qid": "Q1", "lang": "en", "title": "Election", "peak_views": 9000, "ratio": 42.0, "role": "lead"}],
          "countries": [{"code": "US", "ratio": 5.0, "peak_views": 1200, "day": dt.date(2024, 6, 4)}],
+         "states": [{"code": "IN-TN", "lang": "ta", "ratio": 30.0, "peak_views": 600, "baseline": 20.0,
+                     "first": T + dt.timedelta(hours=2), "peak": T + dt.timedelta(hours=5)}],
          "curve": [{"t": T + dt.timedelta(hours=h), "v": h, "b": 1.0} for h in range(97)],
-         "scopes": ["G", "R:US", "A:IN", "A:IN:IN-RJ"], "suspicious": False, "members": 3,
+         "scopes": ["G", "R:US", "R:IN:IN-TN", "A:IN", "A:IN:IN-RJ"], "suspicious": False, "members": 3,
          "lead_lang": "en", "lead_title": "Election"}
     e.update(kw)
     return e
@@ -45,20 +47,31 @@ def test_active_days_from_first_detection_to_peak():
 
 def test_rank_rows_cover_scopes_days_and_both_categories():
     rows = rank_rows(event(), NAMES)
-    assert len(rows) == 4 * 2 * 2
+    assert len(rows) == 3 * 2 * 2 + 1 * 1 * 2 + 1 * 1 * 2   # R:US on the US day; R:IN:IN-TN on the Tamil spike's day
     assert {r[2] for r in rows} == {"ALL", "Politics"}
     first = rows[0]
     assert first[:3] == ("G", dt.date(2024, 6, 4), "ALL") and first[10] == "Rajasthan, India"
     assert first[9] == {"en", "hi"} and len(first[11]) == 12
 
 
+def test_readers_in_scope_uses_the_country_numbers():
+    rows = [r for r in rank_rows(event(), NAMES) if r[0] == "R:US"]
+    assert {r[1] for r in rows} == {dt.date(2024, 6, 4)}
+    assert rows[0][6] == 5.0 and rows[0][7] == 1200                        # US ratio and daily peak
+    tn = [r for r in rank_rows(event(), NAMES) if r[0] == "R:IN:IN-TN"]
+    assert tn[0][6] == 30.0 and tn[0][7] == 600 and {r[1] for r in tn} == {dt.date(2024, 6, 4)}
+    g = [r for r in rank_rows(event(), NAMES) if r[0] == "G"]
+    assert g[0][6] == 42.0 and g[0][7] == 9000 and g[0][3] == 400.0       # worldwide numbers unchanged
+
+
 def test_counters_region_index_and_trending():
-    assert len(counter_keys(event())) == 8
+    keys = counter_keys(event())
+    assert len(keys) == 10 and ("R:US", dt.date(2024, 6, 4), "ALL") in keys
     evs = [event(), event(event_id="b", loc_region="IN-RJ"), event(event_id="c", loc_region=None),
            event(event_id="d", loc_region="IN.AP.EG")]          # not an ISO 3166-2 code: skipped
     assert region_index(evs) == [("IN", "IN-RJ", "Rajasthan", 2)]
     rows = trending([event(), event(event_id="z", score=500.0, suspicious=True)], dt.date(2024, 6, 5))
-    assert {r[0] for r in rows} == {"G", "R:US", "A:IN", "A:IN:IN-RJ"} and all(r[2] != "z" for r in rows)
+    assert {r[0] for r in rows} == {"G", "A:IN", "A:IN:IN-RJ"}       # the Tamil spike was on 4 June and all(r[2] != "z" for r in rows)
 
 
 def test_mongo_doc_has_no_plain_dates():
@@ -66,6 +79,7 @@ def test_mongo_doc_has_no_plain_dates():
     d = mongo_doc(event(), NAMES, {"Q66485": "Jaipur"}, run)
     assert d["_id"] == "evt_20240604_Q1" and d["location"]["city_name"] == "Jaipur"
     assert d["location"]["country_name"] == "India" and d["countries"][0]["name"] == "United States"
+    assert d["states"][0]["name"] == "Tamil Nadu"
 
     def walk(x):
         if isinstance(x, dict):

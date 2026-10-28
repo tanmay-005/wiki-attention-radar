@@ -93,7 +93,7 @@ def main() -> None:
             todo[(lang, t)] = q
         print(f"  {lang}: {len(titles):,} titles -> {sum(1 for q in found.values() if q):,} items")
 
-    items = client.entities([q for q in todo.values() if q])
+    items = client.entities([q for q in todo.values() if q], need=("electoral_district",))
     # fetch everything categories and regions will ask about in a few big batches
     # (classes, countries, and the P131 chain level by level) instead of item by item
     live = [it for it in items.values() if not it.get("missing")]
@@ -106,7 +106,8 @@ def main() -> None:
         seen_cls |= classes
         if not classes:
             break
-    frontier = {q for it in live for k in ("located_in", "location", "headquarters") for q in (it.get(k) or [])}
+    frontier = {q for it in live for k in ("located_in", "location", "headquarters", "electoral_district")
+                for q in (it.get(k) or [])}
     seen = set()
     for _ in range(5):
         recs = client.entities(frontier - seen)

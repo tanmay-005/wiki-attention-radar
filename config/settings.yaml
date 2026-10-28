@@ -2,17 +2,17 @@
 # Every script, MapReduce job, Spark job and the dashboard read this file.
 
 period:
-  hourly_start: 2024-05-25     # 7 days of baseline before detection
-  hourly_end:   2024-06-14
-  detect_start: 2024-06-01
-  country_start: 2024-05-15    # 14 days of baseline before detection
-  country_end:   2024-06-14
+  hourly_start: 2026-10-06     # 7 days of baseline before detection
+  hourly_end:   2026-10-26
+  detect_start: 2026-10-13
+  country_start: 2026-09-26    # 14+ days of baseline before detection
+  country_end:   2026-10-26
 
 dev:                            # small slice for fast iteration
-  hourly_days:  [2024-06-03, 2024-06-04]
-  country_days: [2024-06-02, 2024-06-03, 2024-06-04]
+  hourly_days:  [2026-10-20, 2026-10-21]
+  country_days: [2026-10-19, 2026-10-20, 2026-10-21]
 
-languages: [en, hi, ta, ja, pt]
+languages: [en, hi, ta, ja, pt, te, mr, kn, ml, bn, gu, pa, or, as]
 
 spikes:
   global_hourly:
@@ -29,6 +29,15 @@ spikes:
       pt: {min_views: 100, baseline_floor: 10}
       hi: {min_views: 40, baseline_floor: 5}
       ta: {min_views: 15, baseline_floor: 3}
+      te: {min_views: 10, baseline_floor: 2}
+      mr: {min_views: 10, baseline_floor: 2}
+      kn: {min_views: 10, baseline_floor: 2}
+      ml: {min_views: 10, baseline_floor: 2}
+      bn: {min_views: 15, baseline_floor: 3}
+      gu: {min_views: 8, baseline_floor: 2}
+      pa: {min_views: 8, baseline_floor: 2}
+      or: {min_views: 8, baseline_floor: 2}
+      as: {min_views: 8, baseline_floor: 2}
   country_daily:
     baseline_days: 14
     min_views: 1000
