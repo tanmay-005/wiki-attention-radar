@@ -4,7 +4,7 @@
 Usage (inside the edge container, from /workspace):
     python3 scripts/download_hourly.py --dev              # 2 dev days = 48 files
     python3 scripts/download_hourly.py --full             # whole period in settings.yaml
-    python3 scripts/download_hourly.py --day 2024-06-03   # one or more specific days
+    python3 scripts/download_hourly.py --day 2026-10-20   # one or more specific days
 
 Files land in  <local_raw_cache>/hourly/dt=YYYY-MM-DD/pageviews-YYYYMMDD-HH0000.gz
 Re-running skips files that are already complete.

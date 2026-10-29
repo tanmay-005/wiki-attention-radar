@@ -2,7 +2,7 @@
 # B2: MR1 with map-output compression none / snappy / gzip (combiner off in all three, same as normal MR1 runs).
 # Usage (inside edge): bash benchmarks/b2_compression.sh [DAY] [--quick]
 set -euo pipefail
-DAY="${1:-2024-06-03}"; QUICK="${2:-}"
+DAY="${1:-2026-10-20}"; QUICK="${2:-}"
 CSV=/workspace/benchmarks/results/b2.csv; rm -f "$CSV"
 L=/workspace/benchmarks/results/logs
 for c in none snappy gzip; do

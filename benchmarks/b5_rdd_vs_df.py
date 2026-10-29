@@ -22,7 +22,7 @@ from spark.common.config import load  # noqa: E402
 from spark.common.session import get_spark  # noqa: E402
 
 args = [a for a in sys.argv[1:] if not a.startswith("--")]
-day = args[0] if args else "2024-06-03"
+day = args[0] if args else "2026-10-20"
 hold = "--hold" in sys.argv
 cfg = load()
 src = f"{cfg['paths']['staged']}/hourly/dt={day}"

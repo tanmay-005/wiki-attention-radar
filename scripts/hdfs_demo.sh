@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Step 1.5: runs the HDFS commands for the report and saves their output.
-# Usage (inside edge): bash /workspace/scripts/hdfs_demo.sh 2024-06-03
+# Usage (inside edge): bash /workspace/scripts/hdfs_demo.sh 2026-10-20
 set -uo pipefail
-DAY="${1:-2024-06-03}"
+DAY="${1:-2026-10-20}"
 OUT=/workspace/report/assets/hdfs_demo_${DAY}.txt
 DIR=/radar/raw/hourly/dt=$DAY
 FILE=$(hdfs dfs -ls -C "$DIR" | head -1)

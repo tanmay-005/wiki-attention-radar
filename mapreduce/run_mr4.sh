@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # MR4 search (map-only): every hourly row of one title.
-# Usage (inside edge):  bash mapreduce/run_mr4.sh 2024-06-03 "Virat_Kohli" [lang]
+# Usage (inside edge):  bash mapreduce/run_mr4.sh 2026-10-20 "Virat_Kohli" [lang]
 set -euo pipefail
 DAY="$1"; TITLE="$2"; LANG_FILTER="${3:-}"
 source /workspace/mapreduce/mr_env.sh

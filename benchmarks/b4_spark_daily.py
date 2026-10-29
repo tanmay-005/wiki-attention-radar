@@ -15,7 +15,7 @@ from pyspark.sql import functions as F  # noqa: E402
 from spark.common.config import load  # noqa: E402
 from spark.common.session import get_spark  # noqa: E402
 
-day = sys.argv[1] if len(sys.argv) > 1 else "2024-06-03"
+day = sys.argv[1] if len(sys.argv) > 1 else "2026-10-20"
 cfg = load()
 staged = cfg["paths"]["staged"]
 out = f"{cfg['paths']['hdfs_root']}/benchmarks/b4/spark_daily/dt={day}"

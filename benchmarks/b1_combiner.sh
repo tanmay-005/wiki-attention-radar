@@ -4,7 +4,7 @@
 # language, so the combiner collapses them before the shuffle. Needs MR1 output for DAY.
 # Usage (inside edge): bash benchmarks/b1_combiner.sh [DAY]
 set -euo pipefail
-DAY="${1:-2024-06-03}"
+DAY="${1:-2026-10-20}"
 CSV=/workspace/benchmarks/results/b1.csv; rm -f "$CSV"
 L=/workspace/benchmarks/results/logs
 for comb in yes no; do

@@ -1,4 +1,4 @@
 format,table,size_bytes,q1_count_sum_s,q2_one_language_top10_s,q3_hourly_curve_s
-text,hourly_views_text,2462825400,29.722,35.52,76.525
-orc,hourly_views,193638757,2.585,5.173,5.348
-parquet,hourly_views_parquet,292588909,3.529,5.739,105.665
+text,hourly_views_text,2229195146,24.182,31.729,65.035
+orc,hourly_views,185846463,2.085,4.749,4.717
+parquet,hourly_views_parquet,275415340,2.931,7.297,94.004

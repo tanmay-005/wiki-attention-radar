@@ -1,4 +1,4 @@
--- Step 3.7: analysis queries on the warehouse tables (default day 2024-06-03, next day 2024-06-04).
+-- Step 3.7: analysis queries on the warehouse tables (default day 2026-10-20, next day 2026-10-21).
 -- Run (from docker/):  docker compose exec hiveserver2 bash /workspace/hive/run.sh hive/03_analysis.hql
 -- Shows: window functions, CTEs, complex types (ARRAY, MAP) and a TRANSFORM script.
 -- A4 (a join of two full days) is in Spark: spark/jobs/day_over_day.py

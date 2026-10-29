@@ -14,7 +14,7 @@ from pyspark.sql import SparkSession  # noqa: E402
 
 from spark.common.config import load  # noqa: E402
 
-day = sys.argv[1] if len(sys.argv) > 1 else "2024-06-03"
+day = sys.argv[1] if len(sys.argv) > 1 else "2026-10-20"
 cfg = load()
 src = f"{cfg['paths']['warehouse']}/radar.db/hourly_views/dt={day}"
 dst = f"{cfg['paths']['hdfs_root']}/benchmarks/b3"

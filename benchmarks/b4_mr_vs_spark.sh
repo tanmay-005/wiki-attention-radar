@@ -3,7 +3,7 @@
 # Same input (MR1 output for DAY), same result; compares wall-clock time.
 # Runs INSIDE edge:  bash benchmarks/b4_mr_vs_spark.sh [DAY]
 set -euo pipefail
-DAY="${1:-2024-06-03}"
+DAY="${1:-2026-10-20}"
 cd /workspace
 CSV=benchmarks/results/b4.csv
 echo "engine,wall_seconds,rows,views" > "$CSV"

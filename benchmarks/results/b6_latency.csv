@@ -1,0 +1,10 @@
+store,query,rows,median_ms,p95_ms,server_ms,plan
+cassandra,"Q1 top stories: one scope, day, category",100,11.48,19.06,24.29,single partition read (partition key in WHERE)
+cassandra,"Q1 top stories, readers in India",57,5.57,7.20,4.80,single partition read (partition key in WHERE)
+cassandra,Q2 stories per category (counters),8,2.11,3.41,3.06,single partition read (partition key in WHERE)
+cassandra,Q3 hourly series of one article (48 h),25,3.09,4.40,7.17,single partition read (partition key in WHERE)
+cassandra,Q4 trending now (TTL table),10,2.02,3.25,1.46,single partition read (partition key in WHERE)
+mongodb,Q5 one story by _id (detail panel),1,0.50,0.71,6.00,PROJECTION_SIMPLE > IDHACK
+mongodb,Q6 stories located in India,350,1.89,2.34,2.00,PROJECTION_SIMPLE > FETCH > IXSCAN (location.country_1_location.region_1)
+mongodb,Q7 stories containing one Wikidata item,1,0.55,0.72,0.00,PROJECTION_SIMPLE > FETCH > IXSCAN (articles.qid_1)
+mongodb,"Q8 stories in one category, newest first",50,0.81,1.01,0.00,LIMIT > PROJECTION_SIMPLE > FETCH > IXSCAN (category_1_first_detected_-1)

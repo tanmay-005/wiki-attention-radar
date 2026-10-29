@@ -4,10 +4,10 @@
 Usage (inside the edge container, from /workspace):
     python3 scripts/download_country.py --dev
     python3 scripts/download_country.py --full
-    python3 scripts/download_country.py --day 2024-06-03
+    python3 scripts/download_country.py --day 2026-10-20
 
 Files land in  <local_raw_cache>/country_daily/dt=YYYY-MM-DD/YYYY-MM-DD.tsv
-The published files are zero-padded, tab-separated .tsv files (2024-06-03.tsv),
+The published files are zero-padded, tab-separated .tsv files (2026-10-20.tsv),
 not the .csv names given in the dataset README. If the main URL pattern returns
 404, a few alternative layouts are tried and the one that worked is printed.
 """

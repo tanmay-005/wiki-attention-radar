@@ -53,17 +53,17 @@ SHOW PARTITIONS raw_country_daily;
 SELECT domain_code, page_title, views,
        regexp_extract(INPUT__FILE__NAME, 'pageviews-(\\d{8})-(\\d{2})', 2) AS hour
 FROM raw_hourly
-WHERE dt = '2024-06-03' AND domain_code = 'en'
+WHERE dt = '2026-10-20' AND domain_code = 'en'
 LIMIT 5;
 
 SELECT country_code, country_name, project, page_title, item_id, views
 FROM raw_country_daily
-WHERE dt = '2024-06-03' AND country_code = 'IN'
+WHERE dt = '2026-10-20' AND country_code = 'IN'
 LIMIT 5;
 
 -- First real Hive job (Tez): rows per country file. Proves the query engine works.
 SELECT dt, COUNT(*) AS n_rows, COUNT(DISTINCT country_code) AS countries
 FROM raw_country_daily
-WHERE dt BETWEEN '2024-06-02' AND '2024-06-04'
+WHERE dt BETWEEN '2026-10-19' AND '2026-10-21'
 GROUP BY dt
 ORDER BY dt;

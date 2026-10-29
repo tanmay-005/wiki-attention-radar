@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from spark.common.config import load  # noqa: E402
 from spark.common.session import get_spark  # noqa: E402
 
-day = sys.argv[1] if len(sys.argv) > 1 else "2024-06-03"
+day = sys.argv[1] if len(sys.argv) > 1 else "2026-10-20"
 hour = sys.argv[2] if len(sys.argv) > 2 else "12"
 cfg = load()
 langs = set(cfg["languages"])

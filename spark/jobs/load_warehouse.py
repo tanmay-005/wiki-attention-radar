@@ -15,7 +15,7 @@ Writes, one folder per day (dt=YYYY-MM-DD), replacing that day only:
 
 Run inside edge:
   spark-submit --master local[3] --driver-memory 3g spark/jobs/load_warehouse.py --dev
-  spark-submit ... spark/jobs/load_warehouse.py --day 2024-06-03 --day 2024-06-04
+  spark-submit ... spark/jobs/load_warehouse.py --day 2026-10-20 --day 2026-10-21
   spark-submit ... spark/jobs/load_warehouse.py --full
 """
 from __future__ import annotations

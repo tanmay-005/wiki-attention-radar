@@ -6,7 +6,7 @@ Input  (one hourly dump file per mapper, gz is not splittable):
 Output (key = first 4 fields, value = views):
     <lang>\t<platform>\t<title>\t<hour>\t<views>
 
-The hour comes from the input file name, e.g. pageviews-20240603-120000.gz -> 2024-06-03T12.
+The hour comes from the input file name, e.g. pageviews-20261020-120000.gz -> 2026-10-20T12.
 Languages come from the RADAR_LANGS environment variable (set with -cmdenv).
 Counters are reported once at the end (group "Radar").
 """

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # MR1 filter_normalise: raw hourly dumps of one day -> /radar/staged/hourly/dt=<DAY>
 #
-# Usage (inside edge):  bash mapreduce/run_mr1.sh 2024-06-03 [options]
+# Usage (inside edge):  bash mapreduce/run_mr1.sh 2026-10-20 [options]
 #   --combiner               also run sum_reducer.py as a combiner (off by default: each hourly
 #                            file has every key only once, so it merges almost nothing here)
 #   --map-compress X         none | snappy | gzip   (default snappy; benchmark B2)

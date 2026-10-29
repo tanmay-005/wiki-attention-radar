@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # MR2 daily_agg: /radar/staged/hourly/dt=<DAY> -> /radar/staged/daily/dt=<DAY>
-# Usage (inside edge):  bash mapreduce/run_mr2.sh 2024-06-03 [--no-combiner]
+# Usage (inside edge):  bash mapreduce/run_mr2.sh 2026-10-20 [--no-combiner]
 set -euo pipefail
 DAY="$1"; COMB_OPTS=(-combiner "python3 sum_reducer.py"); COMB=yes
 [[ "${2:-}" == "--no-combiner" ]] && { COMB_OPTS=(); COMB=no; }

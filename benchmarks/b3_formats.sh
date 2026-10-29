@@ -7,7 +7,7 @@
 #   docker compose exec hiveserver2 bash /workspace/benchmarks/b3_formats.sh [DAY] [RUNS]
 # RUNS (default 1): run each query this many times and keep the fastest.
 set -euo pipefail
-DAY="${1:-2024-06-03}"; RUNS="${2:-1}"
+DAY="${1:-2026-10-20}"; RUNS="${2:-1}"
 cd /workspace
 export HADOOP_CONF_DIR=/opt/hive/conf
 HDFS="${HADOOP_HOME:-/opt/hadoop}/bin/hdfs"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # MR3 top_n: top 100 articles per (language, day) using a secondary sort.
-# Usage (inside edge):  bash mapreduce/run_mr3.sh 2024-06-03 [N]
+# Usage (inside edge):  bash mapreduce/run_mr3.sh 2026-10-20 [N]
 set -euo pipefail
 DAY="$1"; N="${2:-100}"
 source /workspace/mapreduce/mr_env.sh

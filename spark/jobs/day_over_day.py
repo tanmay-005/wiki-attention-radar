@@ -16,7 +16,7 @@ from pyspark.sql import SparkSession, functions as F  # noqa: E402
 
 from spark.common.config import load  # noqa: E402
 
-d1, d2 = (sys.argv[1:3] if len(sys.argv) >= 3 else ("2024-06-03", "2024-06-04"))
+d1, d2 = (sys.argv[1:3] if len(sys.argv) >= 3 else ("2026-10-20", "2026-10-21"))
 wh = f"{load()['paths']['warehouse']}/radar.db"
 spark = (SparkSession.builder.appName(f"A4 day_over_day {d1} -> {d2}")
          .config("spark.sql.shuffle.partitions", "16").getOrCreate())
