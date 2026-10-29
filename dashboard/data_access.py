@@ -305,4 +305,10 @@ def get_article_country_daily(qid: str, country: str, start: dt.date, end: dt.da
 def get_validation() -> list[dict]:
     return list(_mongo()["validation"].find({}, {"_id": 1, "name": 1, "date": 1, "scope": 1, "detected": 1,
                                                  "matched_event_id": 1, "matched_title": 1, "rank": 1,
-                                                 "delay_hours": 1, "notes": 1}).sort("date", 1))
+                                                 "rank_g": 1, "rank_r_in": 1, "delay_hours": 1, "group": 1, "why_missed": 1,
+                                                 "notes": 1}).sort("date", 1))
+
+
+def get_validation_summary() -> dict:
+    """Recall, delay, ranks and precision@50 written by S7 (empty before Phase 7 runs)."""
+    return _mongo()["meta"].find_one({"_id": "validation"}) or {}

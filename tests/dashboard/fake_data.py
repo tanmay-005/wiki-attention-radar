@@ -147,8 +147,16 @@ def get_article_country_daily(qid, country, start, end):
     return [{"day": start + dt.timedelta(days=i), "views": 500 + 5000 * (i == n - 3), "baseline": 500} for i in range(n)]
 
 
+VALIDATION = []      # filled by tests that need rows
+VALIDATION_SUMMARY = {}
+
+
 def get_validation():
-    return []
+    return VALIDATION
+
+
+def get_validation_summary():
+    return VALIDATION_SUMMARY
 
 
 def get_country_counts(ids):

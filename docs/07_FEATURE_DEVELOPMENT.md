@@ -390,7 +390,7 @@ Two details found while building it: rows of `event_rank` for category 'ALL' do 
 
 ## F12 · Validation (FR-30)
 
-- `data/validation/known_events_2024-06.csv`: `id, name, date, scope, expected_titles_or_qids, notes`. Build it from reliable sources and double-check every date.
+- `data/validation/known_events_2026-10.csv`: `id, name, date, scope, expected_titles_or_qids, notes`. Build it from reliable sources and double-check every date.
 - Candidate events to verify for the June 2024 window: Indian general election counting day (4 Jun), the India vs Pakistan T20 World Cup match (9 Jun), the Indian PM swearing-in (9 Jun), European Parliament elections (6–9 Jun), Apple WWDC keynote (10 Jun), the Kuwait building fire (12 Jun), the Euro 2024 opening (14 Jun).
 - `spark/jobs/s7_validate.py`: an event matches a known event if it contains any expected QID (or title) and its first detection is within 48 h of the date. Outputs recall, rank and detection delay to Mongo `validation` and a CSV.
 - Precision@50: label the top 50 global events in `data/validation/labels_top50.csv` (`event_id, is_real, note`).

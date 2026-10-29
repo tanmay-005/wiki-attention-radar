@@ -113,7 +113,7 @@ Buffer: P4 is the hardest phase and has the most days. If behind, cut "Should/Co
 **Do**
 1. Download the full period (start the downloads on day 1 of this phase, or earlier overnight).
 2. `scripts/run_pipeline.sh --full` end to end; record the time per stage.
-3. Build `data/validation/known_events_2024-06.csv` (date-checked) and run `spark/jobs/s7_validate.py`.
+3. Build `data/validation/known_events_2026-10.csv` (date-checked) and run `spark/jobs/s7_validate.py`.
 4. Label the top 50 events (real / noise) for precision@50.
 5. Re-run benchmarks on the full data where feasible.
 
